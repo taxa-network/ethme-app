@@ -1,6 +1,6 @@
 const is_localhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
-const infura_key = 'c4f67d39666947f48a5dac5b46b68a73' // whitelist origins added to infura key
+const infura_key = '69239fa82795403c85acad5ef889505c' // whitelist origins added to infura key
 
 const constants = {
   backend_url: !is_localhost ? 'https://eth.me/api/' : 'http://localhost:1337/api/',
