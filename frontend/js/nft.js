@@ -10,7 +10,7 @@ async function initialize() {
     $('#ens-name').text(formatSubdomain(collection_name, nft_id))
   }
 
-  await initializeWeb3()
+  await initializeWeb3(constants.testnet)
 
   
   // [TO-DO] check if provided collection supported by eth.me

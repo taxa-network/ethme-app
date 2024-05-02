@@ -373,14 +373,16 @@ function getENSFromURL(hostname) {
 /**
 * Initialize web3 object, if metamask is present then connect to window.ethereum 
 * else connect to infura.
+* param network - will connect to mainnet by default if not found, otherwise if testnet then connect to testnet 
 */
-async function initializeWeb3() {
+async function initializeWeb3(network) {
   if (window.ethereum) {
     web3 = new Web3(window.ethereum)
     console.log('connected to window.ethereum');
   }
   else {
-    web3 = new Web3(constants.infura_url)
+    const infura_url = (network && network == constants.testnet) ? constants.infura_url_testnet : constants.infura_url
+    web3 = new Web3(infura_url)
     console.log('connected to infura');
   }
   

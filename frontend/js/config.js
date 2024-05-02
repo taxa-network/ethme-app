@@ -1,12 +1,16 @@
 const is_localhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
+const infura_key = 'c4f67d39666947f48a5dac5b46b68a73' // whitelist origins added to infura key
 
 const constants = {
   backend_url: !is_localhost ? 'https://eth.me/api/' : 'http://localhost:1337/api/',
   top_domain: 'you2.eth', //you2 on sepolia
   web2_domain_tld: '.me',
-  infura_url: 'https://sepolia.infura.io/v3/69239fa82795403c85acad5ef889505c',// whitelist origins added to infura key 
   zero_address: '0x0000000000000000000000000000000000000000',
+ 
+  infura_url: 'https://mainnet.infura.io/v3/' + infura_key,
+  infura_url_testnet: 'https://sepolia.infura.io/v3/' + infura_key, 
+  testnet: 'testnet',
 
   ipfs_gateway: 'https://cloudflare-ipfs.com/',
   bzz_gateway: 'https://gateway.ethswarm.org/',
@@ -14,7 +18,7 @@ const constants = {
   arweave_gateway: 'https://arweave.net/',
   ens_app_url: 'https://app.ens.domains/',
 
-  version: '0.0.1',
+  version: '0.0.2',
 
   addresses: {
     1: { // mainnet

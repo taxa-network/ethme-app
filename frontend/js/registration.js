@@ -20,7 +20,7 @@ async function initialize() {
   $('#ens-name').text(formatSubdomain(collection_name, nft_id))
   $('#txt-ens-name').val(formatSubdomain(collection_name, nft_id))
   
-  await initializeWeb3()
+  await initializeWeb3(constants.testnet)
 
 
   // get collection data
