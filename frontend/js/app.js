@@ -371,6 +371,16 @@ function getENSFromURL(hostname) {
 
 
 /**
+* Extract path from URL.
+*/
+function getPathFromURL(location) {
+  let url = (new URL(location));
+  const path_without_domain = url.pathname + url.hash + url.search;
+  return path_without_domain
+}
+
+
+/**
 * Initialize web3 object, if metamask is present then connect to window.ethereum 
 * else connect to infura.
 * param network - will connect to mainnet by default if not found, otherwise if testnet then connect to testnet 

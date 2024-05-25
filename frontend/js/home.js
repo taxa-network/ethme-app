@@ -1,5 +1,6 @@
 const ens_name = getENSFromURL(location.hostname)
-
+var url_path = getPathFromURL(location)//window.location.pathname;
+console.log(url_path);
 
 /**
  * Initialize details for blockchain interaction, like web3 instance and contracts. 
@@ -17,7 +18,7 @@ async function initialize() {
 
   // 1. if index field present then redirect to index field url
   if (index_field_url && index_field_url != '') {
-    window.location = index_field_url
+    window.location = index_field_url + url_path
     return 
   }
   
@@ -26,7 +27,7 @@ async function initialize() {
   console.log('content_hash', content_hash);
 
   if (content_hash && content_hash != '') {
-    window.location = content_hash
+    window.location = content_hash + url_path
     return
   }
 
@@ -35,7 +36,7 @@ async function initialize() {
   console.log('url', url);
 
   if (url && url != '') {
-    window.location = url
+    window.location = url + url_path
     return
   }
 
