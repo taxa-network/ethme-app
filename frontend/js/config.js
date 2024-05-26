@@ -18,7 +18,7 @@ const constants = {
   arweave_gateway: 'https://arweave.net/',
   ens_app_url: 'https://app.ens.domains/',
 
-  version: '0.0.2',
+  version: '0.0.3',
 
   addresses: {
     1: { // mainnet

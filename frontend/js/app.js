@@ -384,11 +384,15 @@ function getPathFromURL(location) {
 * Initialize web3 object, if metamask is present then connect to window.ethereum 
 * else connect to infura.
 * param network - will connect to mainnet by default if not found, otherwise if testnet then connect to testnet 
+* param is_infura - if true it will connect to infura even if metamask/provider found
 */
-async function initializeWeb3(network) {
-  if (window.ethereum) {
+async function initializeWeb3(network, is_infura) {
+  if (window.ethereum && !is_infura) {
     web3 = new Web3(window.ethereum)
-    console.log('connected to window.ethereum');
+    console.log('connected to window.ethereum', window.ethereum.isConnected());
+
+    if(!window.ethereum.isConnected())
+      await initializeWeb3(false, true) // connect to infura
   }
   else {
     const infura_url = (network && network == constants.testnet) ? constants.infura_url_testnet : constants.infura_url
