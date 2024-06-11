@@ -18,6 +18,7 @@ async function initialize() {
 
   // 1. if index field present then redirect to index field url
   if (index_field_url && index_field_url != '') {
+    $('#lbl-redirecting').show()
     window.location = index_field_url + url_path
     return 
   }
@@ -27,6 +28,7 @@ async function initialize() {
   console.log('content_hash', content_hash);
 
   if (content_hash && content_hash != '') {
+    $('#lbl-redirecting').show()
     window.location = content_hash + url_path
     return
   }
