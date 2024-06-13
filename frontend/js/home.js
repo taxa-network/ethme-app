@@ -4,47 +4,61 @@ console.log(url_path);
 
 /**
  * Initialize details for blockchain interaction, like web3 instance and contracts. 
- * Verify network and browser compatibility.
  */
 async function initialize() {
   $('#ens-name').text(ens_name)
   document.title = ens_name + constants.web2_domain_tld;
+  let redirect_url;
 
-  await initializeWeb3()
-  
-  // get index field url
-  let index_field_url = await getIndexRecordForENSName(ens_name)
-  console.log(index_field_url);
+  try {
+    await initializeWeb3()
 
-  // 1. if index field present then redirect to index field url
-  if (index_field_url && index_field_url != '') {
-    $('#lbl-redirecting').show()
-    window.location = index_field_url + url_path
-    return 
+    // 1. if index field present then redirect to index field url
+    let index_field_url = await getIndexRecordForENSName(ens_name)
+    console.log(index_field_url);
+    
+    if (index_field_url && index_field_url != '') {
+      redirect_url = index_field_url + url_path
+    }
+    
+    // 2. if index field is not set, redirect to contenthash
+    if(!redirect_url) {
+      let content_hash = await getContentHashForENSName(ens_name)
+      console.log('content_hash', content_hash);
+
+      if (content_hash && content_hash != '') {
+        redirect_url = content_hash + url_path
+      }
+    }
+    
+    // 3. if index & contenthash fields are not set, redirect to url field
+    if(!redirect_url) {
+      let url = await getURLRecordForENSName(ens_name)
+      console.log('url', url);
+
+      if (url && url != '') {
+        redirect_url = url + url_path
+      }
+    }
+
+    // 4. if index, contenthash & url fields are not set, redirect to ens info page
+    if(!redirect_url) {
+      redirect_url = constants.ens_app_url + ens_name
+    }
+    
+    console.log('redirect_url', redirect_url);
+    $('#lbl-redirecting').show();
+
+    window.location.replace(redirect_url)
+    console.log('redirected');
+    // setTimeout(function(){ window.location.replace(redirect_url) }, 10);
+  } 
+  catch (error) {
+    console.log('error in initialize()');      
+    console.log(error);      
   }
-  
-  // 2. if index field is not set, redirect to contenthash
-  let content_hash = await getContentHashForENSName(ens_name)
-  console.log('content_hash', content_hash);
 
-  if (content_hash && content_hash != '') {
-    $('#lbl-redirecting').show()
-    window.location = content_hash + url_path
-    return
-  }
 
-  // 3. if index & contenthash fields are not set, redirect to url field
-  let url = await getURLRecordForENSName(ens_name)
-  console.log('url', url);
-
-  if (url && url != '') {
-    window.location = url + url_path
-    return
-  }
-
-  // 4. if index, contenthash & url fields are not set, redirect to ens info page
-  window.location = constants.ens_app_url + ens_name
-  return
 
 
   // TO SHOW LINKS ON PAGE

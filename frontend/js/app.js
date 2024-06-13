@@ -15,13 +15,13 @@ const constants = {
   infura_url_testnet: 'https://sepolia.infura.io/v3/' + infura_key, 
   testnet: 'testnet',
 
-  ipfs_gateway: 'https://cloudflare-ipfs.com/',
+  ipfs_gateway: 'https://ipfs.io/',
   bzz_gateway: 'https://gateway.ethswarm.org/',
   sia_gateway: 'https://siasky.net/',
   arweave_gateway: 'https://arweave.net/',
   ens_app_url: 'https://app.ens.domains/',
 
-  version: '0.0.3',
+  version: '0.0.4',
 
   addresses: {
     1: { // mainnet
@@ -246,8 +246,6 @@ async function getContentHashFromContract(_ensName) {
 
     const ens_name_hash = namehash(_ensName)
     let encoded_content_hash = await resolverContract.methods.contenthash(ens_name_hash).call();
-
-    console.log('encoded_content_hash', encoded_content_hash);
     return encoded_content_hash
   }
   catch (error) {
@@ -337,7 +335,6 @@ async function getContentHashForENSName(_ensName) {
     if(!encoded_content_hash || encoded_content_hash == '') return false
 
     let objContentHash = decodeContentHash(encoded_content_hash)
-    console.log('contentHash', objContentHash);
 
     if(!objContentHash.decoded || objContentHash.decoded == '0x0000000000000000000000000000000000000000') return false
     
@@ -431,7 +428,6 @@ async function getURLRecordForENSName(ens_name) {
 
     if (url_field && url_field != '') {
       url_field = ensureHttpProtocol(url_field)
-      console.log('url_field2', url_field);
       return url_field
     }
 
