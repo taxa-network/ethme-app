@@ -1,4 +1,4 @@
-const ens_name = 'nich.eth'//getENSFromURL(location.hostname)
+const ens_name = getENSFromURL(location.hostname)
 var url_path = getPathFromURL(location)//window.location.pathname;
 
 /**
