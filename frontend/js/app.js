@@ -4,6 +4,7 @@
 const is_localhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
 const infura_key = '69239fa82795403c85acad5ef889505c' // whitelist origins added to infura key
+const alchemy_key = 'yOKZQOEt5sXUTVm_WOR56-21h0itKD9n' // alchemy key
 
 const constants = {
   backend_url: !is_localhost ? 'https://eth.me/api/' : 'http://localhost:1337/api/',
@@ -11,6 +12,7 @@ const constants = {
   web2_domain_tld: '.me',
   zero_address: '0x0000000000000000000000000000000000000000',
  
+  alchemy_url: 'https://eth-mainnet.g.alchemy.com/v2/' + alchemy_key,
   infura_url: 'https://mainnet.infura.io/v3/' + infura_key,
   infura_url_testnet: 'https://sepolia.infura.io/v3/' + infura_key, 
   testnet: 'testnet',
@@ -21,7 +23,7 @@ const constants = {
   arweave_gateway: 'https://arweave.net/',
   ens_app_url: 'https://app.ens.domains/',
 
-  version: '0.0.4',
+  version: '0.0.5',
 
   addresses: {
     1: { // mainnet
@@ -622,9 +624,9 @@ async function initializeWeb3(network, is_infura) {
       await initializeWeb3(false, true) // connect to infura
   }
   else {
-    const infura_url = (network && network == constants.testnet) ? constants.infura_url_testnet : constants.infura_url
-    web3 = new Web3(infura_url)
-    console.log('connected to infura');
+    const provider_url = (network && network == constants.testnet) ? constants.infura_url_testnet : constants.alchemy_url
+    web3 = new Web3(provider_url)
+    console.log('connected to provider', provider_url);
   }
   
   await setRegistryAddress()

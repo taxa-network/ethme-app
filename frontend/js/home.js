@@ -11,7 +11,7 @@ async function initialize() {
   let redirect_url;
 
   try {
-    await initializeWeb3()
+    await initializeWeb3(false, true)
 
     // 1. if index field present then redirect to index field url
     let index_field_url = await getIndexRecordForENSName(ens_name)
