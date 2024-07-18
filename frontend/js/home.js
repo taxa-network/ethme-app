@@ -47,11 +47,10 @@ async function initialize() {
     }
     
     console.log('redirect_url', redirect_url);
-    $('#lbl-redirecting').show();
+    // $('#lbl-redirecting').show();
 
     window.location.replace(redirect_url)
     console.log('redirected');
-    // setTimeout(function(){ window.location.replace(redirect_url) }, 10);
   } 
   catch (error) {
     console.log('error in initialize()');      
