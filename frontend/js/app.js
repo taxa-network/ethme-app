@@ -17,7 +17,7 @@ const constants = {
   infura_url_testnet: 'https://sepolia.infura.io/v3/' + infura_key, 
   testnet: 'testnet',
 
-  ipfs_gateway: 'https://ipfs.io/',
+  ipfs_gateway: 'https://www.eth2.me/',
   bzz_gateway: 'https://gateway.ethswarm.org/',
   sia_gateway: 'https://siasky.net/',
   arweave_gateway: 'https://arweave.net/',
