@@ -579,7 +579,7 @@ function formatAddress(address) {
 function namehash(_ensName) {
   let node = '0x0000000000000000000000000000000000000000000000000000000000000000';
   
-  if(!web3.utils) {
+  if(typeof(web3) == 'undefined' || typeof(web3.utils) == 'undefined' || !web3.utils) {
     web3 = new Web3() 
   }
 
