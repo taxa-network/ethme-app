@@ -1,11 +1,11 @@
 const ens_name = getENSFromURL(location.hostname)
 var url_path = getPathFromURL(location)//window.location.pathname;
+console.time('indexer');
 
 /**
  * Initialize details for blockchain interaction, like web3 instance and contracts. 
  */
 async function initialize() {
-  $('#ens-name').text(ens_name)
   document.title = ens_name + constants.web2_domain_tld;
   let redirect_url;
 
@@ -14,8 +14,6 @@ async function initialize() {
   let graph_url = `https://gateway-arbitrum.network.thegraph.com/api/${graph_key}/subgraphs/id/${ens_subgraph_id}`
   
   try {
-    await initializeWeb3(false, true)
-
     const ens_name_hash = namehash(ens_name)
     
     let query = `query getSubgraphRecords($id: String!) {
@@ -48,6 +46,8 @@ async function initialize() {
 
     // 1. if index field present then redirect to index field url
     if (ar_texts && ar_texts.includes('index')) {
+      await initializeWeb3(false, true)
+
       let index_field_url = await getIndexRecordForENSName2(ens_name_hash, resolver_address, encoded_content_hash)
       console.log('index_field_url', index_field_url);
       
@@ -70,6 +70,8 @@ async function initialize() {
 
     // 3. if index & contenthash fields are not set, redirect to url field
     // if(!redirect_url && ar_texts && ar_texts.includes('url')) {
+    //   await initializeWeb3(false, true)
+
     //   let url = await getURLRecordForENSName(ens_name)
     //   console.log('url', url);
 
@@ -83,12 +85,10 @@ async function initialize() {
       redirect_url = constants.ens_app_url + ens_name
     }
     
-
+    console.timeEnd('indexer'); // logs the time taken
     console.log('redirect_url', redirect_url);
-    $('#lbl-redirecting').show();
 
     window.location.replace(redirect_url)
-    console.log('redirected');
   } 
   catch (error) {
     console.log('error in initialize()');      

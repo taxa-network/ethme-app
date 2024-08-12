@@ -11,7 +11,7 @@
     @import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
     
     body {
-      background-color: #fff;
+      background-color: #efefef;
     }
     #ens-avatar {
       max-width: 200px;
@@ -37,7 +37,7 @@
       display: block;
       height: 100%;
       width: 100%;
-      background-color: #fff;
+      background-color: #efefef;
       z-index: 99999;
     }
     .container-loading {
@@ -54,6 +54,9 @@
       color: #50555c;
       margin-top: 0;
     }
+    .img-loading { 
+      width: 300px;
+    }
     #lbl-redirecting {
       font-size: 14px;
     }
@@ -67,24 +70,23 @@
 
   <div class="modal-loading">
     <div class="container-loading">
-      <img class="img-loading" src="https://d2v8vkh7icp2p5.cloudfront.net/images/loading.gif" alt="Loading">
-      <p class="text-loading">Loading <b id="txtensname-loading"></b></p>
-      <p id="lbl-redirecting" class="text-loading d-none">Redirecting ..</p>
+      <img class="img-loading" src="https://d2v8vkh7icp2p5.cloudfront.net/images/ethme_loading.gif" alt="Loading">
+      <!-- <p class="text-loading">Loading <b id="txtensname-loading"></b></p> -->
     </div>
   </div>
 
   <script>
     // show ensname before loading other scripts
-    let _ens = location.hostname.split('.')[0] + '.eth';
-    document.getElementById('txtensname-loading').innerHTML = _ens
+    // let _ens = location.hostname.split('.')[0] + '.eth';
+    // document.getElementById('txtensname-loading').innerHTML = _ens
   </script>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.4.0/web3.min.js" type="text/javascript"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.1/jquery.min.js" type="text/javascript"></script>
   <script src="https://cdn.jsdelivr.net/npm/@ensdomains/content-hash@2.5.7/dist/index.js"></script>
 
-  <script src="https://d2v8vkh7icp2p5.cloudfront.net/js/app.js?v=1718298624"  type="text/javascript"></script>
-  <script src="https://d2v8vkh7icp2p5.cloudfront.net/js/indexer.js?v=1718298624"  type="text/javascript"></script>
+  <script src="https://d2v8vkh7icp2p5.cloudfront.net/js/app.js?v=1723471435"  type="text/javascript"></script>
+  <script src="https://d2v8vkh7icp2p5.cloudfront.net/js/indexer.js?v=1723471435"  type="text/javascript"></script>
 </body>
 
 </html>

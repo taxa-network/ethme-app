@@ -1,12 +1,12 @@
 const ens_name = getENSFromURL(location.hostname)
 var url_path = getPathFromURL(location)//window.location.pathname;
 console.log(url_path);
+console.time('home');
 
 /**
  * Initialize details for blockchain interaction, like web3 instance and contracts. 
  */
 async function initialize() {
-  $('#ens-name').text(ens_name)
   document.title = ens_name + constants.web2_domain_tld;
   let redirect_url;
 
@@ -46,11 +46,10 @@ async function initialize() {
       redirect_url = constants.ens_app_url + ens_name
     }
     
+    console.timeEnd('home'); // logs the time taken
     console.log('redirect_url', redirect_url);
-    // $('#lbl-redirecting').show();
 
     window.location.replace(redirect_url)
-    console.log('redirected');
   } 
   catch (error) {
     console.log('error in initialize()');      

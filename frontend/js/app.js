@@ -578,6 +578,10 @@ function formatAddress(address) {
 */
 function namehash(_ensName) {
   let node = '0x0000000000000000000000000000000000000000000000000000000000000000';
+  
+  if(!web3.utils) {
+    web3 = new Web3() 
+  }
 
   if (_ensName !== '') {
     const labels = _ensName.split('.');
