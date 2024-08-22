@@ -4,7 +4,9 @@
 const is_localhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
 const infura_key = '69239fa82795403c85acad5ef889505c' // whitelist origins added to infura key
-const alchemy_key = 'yOKZQOEt5sXUTVm_WOR56-21h0itKD9n' // alchemy key
+const alchemy_key = 'yOKZQOEt5sXUTVm_WOR56-21h0itKD9n' // whitelist origins
+const graph_key = '7c95a8f89dfd52c1e6bcafadd4426468' // whitelist origins
+const ens_subgraph_id = '5XqPmWe6gjyrJtFn9cLy237i4cWw2j9HcUJEXsP5qGtH'
 
 const constants = {
   backend_url: !is_localhost ? 'https://eth.me/api/' : 'http://localhost:1337/api/',
@@ -12,6 +14,7 @@ const constants = {
   web2_domain_tld: '.me',
   zero_address: '0x0000000000000000000000000000000000000000',
  
+  graph_url: `https://gateway-arbitrum.network.thegraph.com/api/${graph_key}/subgraphs/id/${ens_subgraph_id}`,
   alchemy_url: 'https://eth-mainnet.g.alchemy.com/v2/' + alchemy_key,
   infura_url: 'https://mainnet.infura.io/v3/' + infura_key,
   infura_url_testnet: 'https://sepolia.infura.io/v3/' + infura_key, 
@@ -23,7 +26,7 @@ const constants = {
   arweave_gateway: 'https://arweave.net/',
   ens_app_url: 'https://app.ens.domains/',
 
-  version: '0.0.6',
+  version: '0.0.7',
 
   addresses: {
     1: { // mainnet
@@ -351,6 +354,49 @@ async function getContentHashForENSName(_ensName) {
 
 
 /*
+ * Decodes provided encoded content hash and returns hash with respective protocol.
+ */
+function decodeContentHashWithLink(encoded_content_hash) {
+  let objContentHash = decodeContentHash(encoded_content_hash)
+
+  if(!objContentHash.decoded || objContentHash.decoded == '0x0000000000000000000000000000000000000000') return false
+
+  let content = getContentHashLink(objContentHash)
+  return content
+}
+
+/*
+ * Get ENS data from Graph Indexer for given ENS name.
+ */
+async function getENSDataFromGraph(ens_name_hash){
+  
+  let query = `query getSubgraphRecords($id: String!) {
+      domain(id: $id) {
+        name
+        resolver {
+          address
+          contentHash
+          texts
+        }
+      }
+    }
+  `
+  let params = {
+    "query": query,
+    "variables":{ "id": ens_name_hash },
+    "operationName": "getSubgraphRecords"
+  }
+
+  let response = await makePOSTRequest(constants.graph_url, params)
+  let ensname_data = await response.json()
+  ensname_data = ensname_data.data.domain
+  
+  console.log(ensname_data);
+  return ensname_data
+}
+
+
+/*
  * Gets index field from text records of the passed ENS name.
  * Also chekcs if the field is supported, and converts it in redirect URL.
  * Index field is a custom field defined for eth.me redirection page.
@@ -358,17 +404,17 @@ async function getContentHashForENSName(_ensName) {
  * Returns redirect URL on success. In case if field not supported or any 
  * issue found then returns blank string ''.
  */
-async function getIndexRecordForENSName(ens_name) {
+async function getIndexRecordForENSName(ens_name_hash, resolver_address, encoded_content_hash) {
   try {
     let supported_fields = ['url', 'contenthash', 'com.twitter', 'com.github', 'com.telegram', 'com.linkedin', 'com.opensea', 'com.reddit', 'com.etherscan']
 
     // get resolver for ENS name
-    const resolver_address = await getResolverAddressForENSName(ens_name)
-    if (!resolver_address || resolver_address == constants.zero_address) return ''
+    // const resolver_address = await getResolverAddressForENSName(ens_name)
+    if (!resolver_address || resolver_address == constants.zero_address) return false
     
     // use contract interaction for text fields, bcz web3.js library doesnt contain method for it, and ethers doesnt support ipns url
     const resolverContract = new web3.eth.Contract(constants.resolverABI, resolver_address);
-    const ens_name_hash = namehash(ens_name)
+    // const ens_name_hash = namehash(ens_name)
 
     // get index text field
     let index_field = await resolverContract.methods.text(ens_name_hash, 'index').call();
@@ -381,7 +427,7 @@ async function getIndexRecordForENSName(ens_name) {
 
       // if contenthash then get and generate ipfs url
       if (index_field == 'contenthash') {
-        index_url = await getContentHashForENSName(ens_name)
+        index_url = decodeContentHashWithLink(encoded_content_hash) //await getContentHashForENSName(ens_name)
       }
 
       // if text fields then get value and generate respective URL (like twitter etc)
@@ -414,15 +460,15 @@ async function getIndexRecordForENSName(ens_name) {
  * 
  * Returns redirect URL on success, otherwise returns false.
  */
-async function getURLRecordForENSName(ens_name) {
+async function getURLRecordForENSName(ens_name_hash, resolver_address) {
   try {
     // get resolver for ENS name
-    const resolver_address = await getResolverAddressForENSName(ens_name)
+    // const resolver_address = await getResolverAddressForENSName(ens_name)
     if (!resolver_address || resolver_address == constants.zero_address) return false
     
     // use contract interaction for text fields, bcz web3.js library doesnt contain method for it, and ethers doesnt support ipns url
     const resolverContract = new web3.eth.Contract(constants.resolverABI, resolver_address);
-    const ens_name_hash = namehash(ens_name)
+    // const ens_name_hash = namehash(ens_name)
 
     // get index text field
     let url_field = await resolverContract.methods.text(ens_name_hash, 'url').call();

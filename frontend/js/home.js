@@ -1,6 +1,5 @@
 const ens_name = getENSFromURL(location.hostname)
-var url_path = getPathFromURL(location)//window.location.pathname;
-console.log(url_path);
+var url_path = getPathFromURL(location)
 console.time('home');
 
 /**
@@ -11,29 +10,48 @@ async function initialize() {
   let redirect_url;
 
   try {
-    await initializeWeb3(false, true)
+    const ens_name_hash = namehash(ens_name)
+    let ens_data = await getENSDataFromGraph(ens_name_hash)
+    
+    // if no data found it means name not exists or resolver not set
+    if (!ens_data || !ens_data.resolver) {
+      window.location.replace(constants.ens_app_url + ens_name)
+      return
+    }
+
+    ens_data = ens_data.resolver
+    let ar_texts = ens_data.texts
+    let resolver_address = ens_data.address
+    let encoded_content_hash = ens_data.contentHash
+
 
     // 1. if index field present then redirect to index field url
-    let index_field_url = await getIndexRecordForENSName(ens_name)
-    console.log(index_field_url);
-    
-    if (index_field_url && index_field_url != '') {
-      redirect_url = index_field_url + url_path
+    if (ar_texts && ar_texts.includes('index')) {
+      await initializeWeb3(false, true)
+
+      let index_field_url = await getIndexRecordForENSName(ens_name_hash, resolver_address, encoded_content_hash)
+      console.log('index_field_url', index_field_url);
+      
+      if (index_field_url && index_field_url != '') {
+        redirect_url = index_field_url + url_path
+      }
     }
     
     // 2. if index field is not set, redirect to contenthash
-    if(!redirect_url) {
-      let content_hash = await getContentHashForENSName(ens_name)
+    if(!redirect_url && encoded_content_hash && encoded_content_hash != '' && encoded_content_hash != '0x') {
+      let content_hash = decodeContentHashWithLink(encoded_content_hash)
       console.log('content_hash', content_hash);
-
+      
       if (content_hash && content_hash != '') {
         redirect_url = content_hash + url_path
       }
     }
     
     // 3. if index & contenthash fields are not set, redirect to url field
-    if(!redirect_url) {
-      let url = await getURLRecordForENSName(ens_name)
+    if(!redirect_url && ar_texts && ar_texts.includes('url')) {
+      await initializeWeb3(false, true)
+
+      let url = await getURLRecordForENSName(ens_name_hash, resolver_address)
       console.log('url', url);
 
       if (url && url != '') {
