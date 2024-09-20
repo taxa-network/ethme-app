@@ -71,7 +71,8 @@ async function initialize() {
   } 
   catch (error) {
     console.log('error in initialize()');      
-    console.log(error);      
+    console.log(error);    
+    Sentry.captureException(error);
   }
 
 

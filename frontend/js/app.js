@@ -255,6 +255,7 @@ async function getContentHashFromContract(_ensName) {
   }
   catch (error) {
     console.log(error);
+    Sentry.captureException(error);
     return false
   }
 }
@@ -291,6 +292,7 @@ function decodeContentHash(encoded_content_hash) {
   }
   catch (error) {
     console.log(error);
+    Sentry.captureException(error);
     return false
   }
 }
@@ -326,6 +328,7 @@ function getContentHashLink(objContentHash) {
   }
   catch (error) {
     console.log(error);
+    Sentry.captureException(error);
     return false
   }
 }
@@ -348,6 +351,7 @@ async function getContentHashForENSName(_ensName) {
   }
   catch (error) {
     console.log(error);
+    Sentry.captureException(error);
     return false
   }
 }
@@ -369,30 +373,36 @@ function decodeContentHashWithLink(encoded_content_hash) {
  * Get ENS data from Graph Indexer for given ENS name.
  */
 async function getENSDataFromGraph(ens_name_hash){
-  
-  let query = `query getSubgraphRecords($id: String!) {
-      domain(id: $id) {
-        name
-        resolver {
-          address
-          contentHash
-          texts
+  try {
+    let query = `query getSubgraphRecords($id: String!) {
+        domain(id: $id) {
+          name
+          resolver {
+            address
+            contentHash
+            texts
+          }
         }
       }
+    `
+    let params = {
+      "query": query,
+      "variables":{ "id": ens_name_hash },
+      "operationName": "getSubgraphRecords"
     }
-  `
-  let params = {
-    "query": query,
-    "variables":{ "id": ens_name_hash },
-    "operationName": "getSubgraphRecords"
-  }
 
-  let response = await makePOSTRequest(constants.graph_url, params)
-  let ensname_data = await response.json()
-  ensname_data = ensname_data.data.domain
-  
-  console.log(ensname_data);
-  return ensname_data
+    let response = await makePOSTRequest(constants.graph_url, params)
+    let ensname_data = await response.json()
+    ensname_data = ensname_data.data.domain
+    
+    console.log(ensname_data);
+    return ensname_data
+  }
+  catch (error) {
+    console.log(error);
+    Sentry.captureException(error);
+    return false
+  }
 }
 
 
@@ -409,12 +419,10 @@ async function getIndexRecordForENSName(ens_name_hash, resolver_address, encoded
     let supported_fields = ['url', 'contenthash', 'com.twitter', 'com.github', 'com.telegram', 'com.linkedin', 'com.opensea', 'com.reddit', 'com.etherscan']
 
     // get resolver for ENS name
-    // const resolver_address = await getResolverAddressForENSName(ens_name)
     if (!resolver_address || resolver_address == constants.zero_address) return false
     
     // use contract interaction for text fields, bcz web3.js library doesnt contain method for it, and ethers doesnt support ipns url
     const resolverContract = new web3.eth.Contract(constants.resolverABI, resolver_address);
-    // const ens_name_hash = namehash(ens_name)
 
     // get index text field
     let index_field = await resolverContract.methods.text(ens_name_hash, 'index').call();
@@ -450,6 +458,7 @@ async function getIndexRecordForENSName(ens_name_hash, resolver_address, encoded
   } 
   catch (error) {
     console.log(error);  
+    Sentry.captureException(error);
     return ''
   }
 }
@@ -463,12 +472,10 @@ async function getIndexRecordForENSName(ens_name_hash, resolver_address, encoded
 async function getURLRecordForENSName(ens_name_hash, resolver_address) {
   try {
     // get resolver for ENS name
-    // const resolver_address = await getResolverAddressForENSName(ens_name)
     if (!resolver_address || resolver_address == constants.zero_address) return false
     
     // use contract interaction for text fields, bcz web3.js library doesnt contain method for it, and ethers doesnt support ipns url
     const resolverContract = new web3.eth.Contract(constants.resolverABI, resolver_address);
-    // const ens_name_hash = namehash(ens_name)
 
     // get index text field
     let url_field = await resolverContract.methods.text(ens_name_hash, 'url').call();
@@ -483,6 +490,7 @@ async function getURLRecordForENSName(ens_name_hash, resolver_address) {
   } 
   catch (error) {
     console.log(error);  
+    Sentry.captureException(error);
     return false
   }
 }
@@ -520,6 +528,7 @@ async function getTextRecordsForENSName(_ensName) {
   } 
   catch (error) {
     console.log(error);  
+    Sentry.captureException(error);
     return false
   }
 }
@@ -666,20 +675,27 @@ function getPathFromURL(location) {
 * param is_infura - if true it will connect to infura even if metamask/provider found
 */
 async function initializeWeb3(network, is_infura) {
-  if (window.ethereum && !is_infura) {
-    web3 = new Web3(window.ethereum)
-    console.log('connected to window.ethereum', window.ethereum.isConnected());
+  try {
+    if (window.ethereum && !is_infura) {
+      web3 = new Web3(window.ethereum)
+      console.log('connected to window.ethereum', window.ethereum.isConnected());
 
-    if(!window.ethereum.isConnected())
-      await initializeWeb3(false, true) // connect to infura
+      if(!window.ethereum.isConnected())
+        await initializeWeb3(false, true) // connect to provider
+    }
+    else {
+      const provider_url = (network && network == constants.testnet) ? constants.infura_url_testnet : constants.alchemy_url
+      web3 = new Web3(provider_url)
+      console.log('connected to provider', provider_url);
+    }
+    
+    await setRegistryAddress()
+  } 
+  catch (error) {
+    console.log(error);
+    Sentry.captureException(error);
+    return false
   }
-  else {
-    const provider_url = (network && network == constants.testnet) ? constants.infura_url_testnet : constants.alchemy_url
-    web3 = new Web3(provider_url)
-    console.log('connected to provider', provider_url);
-  }
-  
-  await setRegistryAddress()
 }
 
 
@@ -740,6 +756,7 @@ async function connectWallet() {
   } 
   catch (error) {
     console.log(error);
+    Sentry.captureException(error);
     return false
   }
 }
