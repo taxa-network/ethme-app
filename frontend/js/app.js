@@ -254,8 +254,9 @@ async function getContentHashFromContract(_ensName) {
     return encoded_content_hash
   }
   catch (error) {
-    console.log(error);
-    Sentry.captureException(error);
+    captureErrorSentry(error, {
+      method: "getContentHashFromContract",
+    })
     return false
   }
 }
@@ -291,8 +292,9 @@ function decodeContentHash(encoded_content_hash) {
     return { protocolType, decoded: decoded_content_hash }
   }
   catch (error) {
-    console.log(error);
-    Sentry.captureException(error);
+    captureErrorSentry(error, {
+      method: "decodeContentHash",
+    })
     return false
   }
 }
@@ -327,8 +329,9 @@ function getContentHashLink(objContentHash) {
     return false
   }
   catch (error) {
-    console.log(error);
-    Sentry.captureException(error);
+    captureErrorSentry(error, {
+      method: "getContentHashLink",
+    })
     return false
   }
 }
@@ -350,8 +353,9 @@ async function getContentHashForENSName(_ensName) {
     return content
   }
   catch (error) {
-    console.log(error);
-    Sentry.captureException(error);
+    captureErrorSentry(error, {
+      method: "getContentHashForENSName",
+    })
     return false
   }
 }
@@ -399,8 +403,9 @@ async function getENSDataFromGraph(ens_name_hash){
     return ensname_data
   }
   catch (error) {
-    console.log(error);
-    Sentry.captureException(error);
+    captureErrorSentry(error, {
+      method: "getENSDataFromGraph",
+    })
     return false
   }
 }
@@ -457,8 +462,9 @@ async function getIndexRecordForENSName(ens_name_hash, resolver_address, encoded
     return ''
   } 
   catch (error) {
-    console.log(error);  
-    Sentry.captureException(error);
+    captureErrorSentry(error, {
+      method: "getIndexRecordForENSName",
+    })
     return ''
   }
 }
@@ -489,8 +495,9 @@ async function getURLRecordForENSName(ens_name_hash, resolver_address) {
     return false
   } 
   catch (error) {
-    console.log(error);  
-    Sentry.captureException(error);
+    captureErrorSentry(error, {
+      method: "getURLRecordForENSName",
+    })
     return false
   }
 }
@@ -527,8 +534,9 @@ async function getTextRecordsForENSName(_ensName) {
     return text_records
   } 
   catch (error) {
-    console.log(error);  
-    Sentry.captureException(error);
+    captureErrorSentry(error, {
+      method: "getTextRecordsForENSName",
+    })
     return false
   }
 }
@@ -692,8 +700,9 @@ async function initializeWeb3(network, is_infura) {
     await setRegistryAddress()
   } 
   catch (error) {
-    console.log(error);
-    Sentry.captureException(error);
+    captureErrorSentry(error, {
+      method: "initializeWeb3",
+    })
     return false
   }
 }
@@ -755,8 +764,9 @@ async function connectWallet() {
     return false
   } 
   catch (error) {
-    console.log(error);
-    Sentry.captureException(error);
+    captureErrorSentry(error, {
+      method: "connectWallet",
+    })
     return false
   }
 }
@@ -890,4 +900,10 @@ function ensureHttpProtocol(url) {
 
 function getAppVersion() {
   console.log(`Version: ${constants.version}`);
+}
+
+
+function captureErrorSentry(error, tags) {
+  console.log(error);
+  Sentry.captureException(error, { tags });
 }

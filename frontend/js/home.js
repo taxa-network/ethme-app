@@ -70,9 +70,9 @@ async function initialize() {
     window.location.replace(redirect_url)
   } 
   catch (error) {
-    console.log('error in initialize()');      
-    console.log(error);    
-    Sentry.captureException(error);
+    captureErrorSentry(error, {
+      method: "initialize",
+    })
   }
 
 
