@@ -2,6 +2,7 @@ const app = require('./app.js')
 
 const ens_name = app.getENSFromURL(location.hostname)
 var url_path = app.getPathFromURL(location)
+url_path = (url_path == '/') ? '' : url_path
 console.log(ens_name);
 
 

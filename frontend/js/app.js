@@ -239,7 +239,7 @@ export const constants = {
 */
 
 
-var g_resolver, g_network_id
+var g_resolver, g_network_id, web3
 
 getAppVersion()
 
