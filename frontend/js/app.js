@@ -1,3 +1,8 @@
+window.Buffer = require('buffer').Buffer;
+const contentHash = require('@ensdomains/content-hash')
+const ethens_namehash = require('@ensdomains/eth-ens-namehash')
+
+
 /*
 * CONFIG
 */
@@ -8,7 +13,7 @@ const alchemy_key = 'yOKZQOEt5sXUTVm_WOR56-21h0itKD9n' // whitelist origins
 const graph_key = '7c95a8f89dfd52c1e6bcafadd4426468' // whitelist origins
 const ens_subgraph_id = '5XqPmWe6gjyrJtFn9cLy237i4cWw2j9HcUJEXsP5qGtH'
 
-const constants = {
+export const constants = {
   backend_url: !is_localhost ? 'https://eth.me/api/' : 'http://localhost:1337/api/',
   top_domain: 'you2.eth', //you2 on sepolia
   web2_domain_tld: '.me',
@@ -22,8 +27,8 @@ const constants = {
 
   ipfs_gateway: 'https://www.eth2.me/',
   bzz_gateway: 'https://gateway.ethswarm.org/',
-  sia_gateway: 'https://siasky.net/',
-  arweave_gateway: 'https://arweave.net/',
+  sia_gateway: 'https://siasky.net',
+  arweave_gateway: 'https://arweave.net',
   ens_app_url: 'https://app.ens.domains/',
 
   version: '0.0.8',
@@ -242,7 +247,7 @@ getAppVersion()
 /*
  * Gets content hash field for provided ENS name and returns encoded hash value.
  */
-async function getContentHashFromContract(_ensName) {
+export async function getContentHashFromContract(_ensName) {
   try {
     const resolver_address = await getResolverAddressForENSName(_ensName)
     if (!resolver_address || resolver_address == constants.zero_address) return false
@@ -265,7 +270,7 @@ async function getContentHashFromContract(_ensName) {
 /*
  * Decodes provided encoded content hash and returns decoded hash with protocol type.
  */
-function decodeContentHash(encoded_content_hash) {
+export function decodeContentHash(encoded_content_hash) {
   try {
     let decoded_content_hash = contentHash.decode(encoded_content_hash)
     const codec = contentHash.getCodec(encoded_content_hash)
@@ -303,7 +308,7 @@ function decodeContentHash(encoded_content_hash) {
 /*
  * Generates web2 content hash link w.r.t. provided protocol.
  */
-function getContentHashLink(objContentHash) {
+export function getContentHashLink(objContentHash) {
   try {
     const protocol = objContentHash.protocolType
     const hash = objContentHash.decoded
@@ -340,7 +345,7 @@ function getContentHashLink(objContentHash) {
 /*
  * Gets content hash field for provided ENS name and returns hash wit respective protocol.
  */
-async function getContentHashForENSName(_ensName) {
+export async function getContentHashForENSName(_ensName) {
   try {
     let encoded_content_hash = await getContentHashFromContract(_ensName)
     if(!encoded_content_hash || encoded_content_hash == '') return false
@@ -364,7 +369,7 @@ async function getContentHashForENSName(_ensName) {
 /*
  * Decodes provided encoded content hash and returns hash with respective protocol.
  */
-function decodeContentHashWithLink(encoded_content_hash) {
+export function decodeContentHashWithLink(encoded_content_hash) {
   let objContentHash = decodeContentHash(encoded_content_hash)
 
   if(!objContentHash.decoded || objContentHash.decoded == '0x0000000000000000000000000000000000000000') return false
@@ -376,7 +381,7 @@ function decodeContentHashWithLink(encoded_content_hash) {
 /*
  * Get ENS data from Graph Indexer for given ENS name.
  */
-async function getENSDataFromGraph(ens_name_hash){
+export async function getENSDataFromGraph(ens_name_hash){
   try {
     let query = `query getSubgraphRecords($id: String!) {
         domain(id: $id) {
@@ -419,7 +424,7 @@ async function getENSDataFromGraph(ens_name_hash){
  * Returns redirect URL on success. In case if field not supported or any 
  * issue found then returns blank string ''.
  */
-async function getIndexRecordForENSName(ens_name_hash, resolver_address, encoded_content_hash) {
+export async function getIndexRecordForENSName(ens_name_hash, resolver_address, encoded_content_hash) {
   try {
     let supported_fields = ['url', 'contenthash', 'com.twitter', 'com.github', 'com.telegram', 'com.linkedin', 'com.opensea', 'com.reddit', 'com.etherscan']
 
@@ -475,7 +480,7 @@ async function getIndexRecordForENSName(ens_name_hash, resolver_address, encoded
  * 
  * Returns redirect URL on success, otherwise returns false.
  */
-async function getURLRecordForENSName(ens_name_hash, resolver_address) {
+export async function getURLRecordForENSName(ens_name_hash, resolver_address) {
   try {
     // get resolver for ENS name
     if (!resolver_address || resolver_address == constants.zero_address) return false
@@ -506,7 +511,7 @@ async function getURLRecordForENSName(ens_name_hash, resolver_address) {
 /*
 * Gets basic text records for provided ENS name.
 */
-async function getTextRecordsForENSName(_ensName) {
+export async function getTextRecordsForENSName(_ensName) {
   try {
     // get resolver for ENS name
     const resolver_address = await getResolverAddressForENSName(ens_name)
@@ -542,7 +547,7 @@ async function getTextRecordsForENSName(_ensName) {
 }
 
 
-function generateIndexValueURL(index_field, txt_value) {
+export function generateIndexValueURL(index_field, txt_value) {
   switch (index_field) {
     case 'com.twitter':
       return generateTwitterURL(txt_value)
@@ -575,7 +580,7 @@ function generateIndexValueURL(index_field, txt_value) {
 * ENS avatar field also supports adding images directly from NFT contract.
 * This function fetches metadata from given NFT contract & extracts image.
 */
-async function fetchImgFromNFT(token_standard, token_contract, token_id) {
+export async function fetchImgFromNFT(token_standard, token_contract, token_id) {
   let token_uri
 
   // call ERC721 contract with respective ABI
@@ -606,7 +611,7 @@ async function fetchImgFromNFT(token_standard, token_contract, token_id) {
 /**
 * Resolves IPFS url to HTTPS url. 
 */
-function resolveIPFSURL(ipfs_url) {
+export function resolveIPFSURL(ipfs_url) {
   return constants.ipfs_gateway + 'ipfs/' + ipfs_url.replace('ipfs://','')
 }
 
@@ -615,7 +620,7 @@ function resolveIPFSURL(ipfs_url) {
 * Get address of provided ENS name.
 * Returns { full address, short_address, address_link }. 
 */
-async function getAddress(ens_name) {
+export async function getAddress(ens_name) {
   let address = await web3.eth.ens.getAddress(ens_name)
   return formatAddress(address)
 }
@@ -624,7 +629,7 @@ async function getAddress(ens_name) {
 /**
 * Formats provided address and also add short address and block scanner link.
 */
-function formatAddress(address) {
+export function formatAddress(address) {
   let address_text = address.substring(0, 6) + '...' +  address.substring(address.length-4, address.length)
 
   return {
@@ -639,29 +644,23 @@ function formatAddress(address) {
 * Normalise and hash ENS name 
 * https://docs.ens.domains/contract-api-reference/name-processing
 */
-function namehash(_ensName) {
-  let node = '0x0000000000000000000000000000000000000000000000000000000000000000';
-  
-  if(typeof(web3) == 'undefined' || typeof(web3.utils) == 'undefined' || !web3.utils) {
-    web3 = new Web3() 
+export function namehash(_ensName) {
+  try {
+    let hash = ethens_namehash.hash(_ensName)
+    return hash 
+  } 
+  catch (error) {
+    captureErrorSentry(error, {
+      method: "namehash",
+    })
   }
-
-  if (_ensName !== '') {
-    const labels = _ensName.split('.');
-    for (let i = labels.length - 1; i >= 0; i--) {
-      const labelSha3 = web3.utils.sha3(labels[i]);
-      node = web3.utils.sha3(node + labelSha3.slice(2), { encoding: 'hex' });
-    }
-  }
-
-  return node;
 }
 
 
 /**
 * Extract ens name from URL hostname.
 */
-function getENSFromURL(hostname) {
+export function getENSFromURL(hostname) {
   return hostname.split('.')[0] + '.eth';
 }
 
@@ -669,7 +668,7 @@ function getENSFromURL(hostname) {
 /**
 * Extract path from URL.
 */
-function getPathFromURL(location) {
+export function getPathFromURL(location) {
   let url = (new URL(location));
   const path_without_domain = url.pathname + url.hash + url.search;
   return path_without_domain
@@ -682,7 +681,7 @@ function getPathFromURL(location) {
 * param network - will connect to mainnet by default if not found, otherwise if testnet then connect to testnet 
 * param is_infura - if true it will connect to infura even if metamask/provider found
 */
-async function initializeWeb3(network, is_infura) {
+export async function initializeWeb3(network, is_infura) {
   try {
     if (window.ethereum && !is_infura) {
       web3 = new Web3(window.ethereum)
@@ -712,7 +711,7 @@ async function initializeWeb3(network, is_infura) {
 * Extract NFT info from URL, including Collection and NFT ID.
 * else connect to infura.
 */
-function extractNFTInfoFromURL(location){
+export function extractNFTInfoFromURL(location){
   let params = (new URL(location)).searchParams;
   let nft_data = params.get("q");
 
@@ -731,7 +730,7 @@ function extractNFTInfoFromURL(location){
  * Checks if given subname exists or not in defined top domain.
  * Returns bool true/false.
  */
-async function checkIfSubdomainExists(collection_name, nft_id){
+export async function checkIfSubdomainExists(collection_name, nft_id){
   let sub_domain = formatSubdomain(collection_name, nft_id)
   let full_sub_domain = sub_domain + '.' + constants.top_domain
 
@@ -747,7 +746,7 @@ async function checkIfSubdomainExists(collection_name, nft_id){
  * Provides a single point to create subname with standard format from provided collection and nft id.
  * Use this function to format subname in application.
  */
-function formatSubdomain(collection_name, nft_id){
+export function formatSubdomain(collection_name, nft_id){
   return collection_name + '-' + nft_id
 }
 
@@ -755,7 +754,7 @@ function formatSubdomain(collection_name, nft_id){
 /* 
  * Connects wallet (metamask) to application if its not connected. 
  */
-async function connectWallet() {
+export async function connectWallet() {
   try {
     if (window.ethereum) {
       await window.ethereum.enable()
@@ -772,7 +771,7 @@ async function connectWallet() {
 }
 
 
-async function checkIfWalletConnected() {
+export async function checkIfWalletConnected() {
   const accounts = await web3.eth.getAccounts() // returns all connected accounts to this site
   return accounts.length > 0 ? true : false 
 }
@@ -781,7 +780,7 @@ async function checkIfWalletConnected() {
 /**
 * Sets ENS Registry address according to the selected network
 */
-async function setRegistryAddress() {
+export async function setRegistryAddress() {
   const network_id = await getNetworkId()
   
   if (!constants.addresses[network_id]) {
@@ -793,12 +792,12 @@ async function setRegistryAddress() {
 }
 
 
-function getRegistryAddress() {
+export function getRegistryAddress() {
   return web3.eth.ens.registryAddress // web3 registry address is set by our config in initializeWeb3
 }
 
 
-async function getCustomResolverAddress() {
+export async function getCustomResolverAddress() {
   const network_id = await getNetworkId()
 
   if (!constants.addresses[network_id]) {
@@ -810,7 +809,7 @@ async function getCustomResolverAddress() {
 }
 
 
-async function getBulkENSAddress() {
+export async function getBulkENSAddress() {
   const network_id = await getNetworkId()
 
   if (!constants.addresses[network_id]) {
@@ -822,7 +821,7 @@ async function getBulkENSAddress() {
 }
 
 
-async function getNetworkId() {
+export async function getNetworkId() {
   if (g_network_id) return g_network_id // return g_network_id (global variable) if already set (fetched in this cycle)
 
   const network_id = await web3.eth.net.getId()
@@ -833,7 +832,7 @@ async function getNetworkId() {
 /* 
  * Gets resolver address for ENS name
  */
-async function getResolverAddressForENSName(ens_name) {
+export async function getResolverAddressForENSName(ens_name) {
   if (g_resolver) return g_resolver // return resolver (global variable) if already set (fetched in this cycle)
 
   let obj_resolver = await web3.eth.ens.getResolver(ens_name);
@@ -843,7 +842,7 @@ async function getResolverAddressForENSName(ens_name) {
 }
 
 
-async function makePOSTRequest(url, params_obj) {
+export async function makePOSTRequest(url, params_obj) {
   let response = await fetch(url, { 
     method: 'POST',
     headers: {
@@ -856,40 +855,40 @@ async function makePOSTRequest(url, params_obj) {
 }
 
 
-function generateTwitterURL(value) {
+export function generateTwitterURL(value) {
   return 'https://twitter.com/' + value;
 }
 
-function generateGithubURL(value) {
+export function generateGithubURL(value) {
   return 'https://github.com/' + value;
 }
 
-function generateTelegramURL(value) {
+export function generateTelegramURL(value) {
   return 'https://t.me/' + value;
 }
 
-function generateLinkedinURL(value) {
+export function generateLinkedinURL(value) {
   return 'https://linkedin.com/in/' + value;
 }
 
-function generateOpenseaURL(value) {
+export function generateOpenseaURL(value) {
   // user can use profile name like, "XED_Arts" (for https://opensea.io/XED_Arts)
   // or collection link like, "collection/mutant-ape-yacht-club" (for https://opensea.io/collection/mutant-ape-yacht-club)
   return 'https://opensea.io/' + value;
 }
 
-function generateRedditURL(value) {
+export function generateRedditURL(value) {
   return 'https://www.reddit.com/user/' + value;
 }
 
-function generateEtherscanURL(value) {
+export function generateEtherscanURL(value) {
   return 'https://etherscan.io/address/' + value;
 }
 
 /* 
  * Checks if url has http protocol added, if not then add it
  */
-function ensureHttpProtocol(url) {
+export function ensureHttpProtocol(url) {
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
     return 'http://' + url;
   }
@@ -898,12 +897,12 @@ function ensureHttpProtocol(url) {
 }
 
 
-function getAppVersion() {
+export function getAppVersion() {
   console.log(`Version: ${constants.version}`);
 }
 
 
-function captureErrorSentry(error, tags) {
+export function captureErrorSentry(error, tags) {
   console.log(error);
   Sentry.captureException(error, { tags });
 }
