@@ -25,7 +25,7 @@ export const constants = {
   infura_url_testnet: 'https://sepolia.infura.io/v3/' + infura_key, 
   testnet: 'testnet',
 
-  ipfs_gateway: 'https://www.eth2.me/',
+  ipfs_gateway: 'eth2.me',
   bzz_gateway: 'https://gateway.ethswarm.org/',
   sia_gateway: 'https://siasky.net',
   arweave_gateway: 'https://arweave.net',
@@ -314,10 +314,10 @@ export function getContentHashLink(objContentHash) {
     const hash = objContentHash.decoded
 
     if (protocol === 'ipfs') {
-      return `${constants.ipfs_gateway}ipfs/${hash}`
+      return `${hash}.ipfs.${constants.ipfs_gateway}` //`${constants.ipfs_gateway}ipfs/${hash}`
     }
     if (protocol === 'ipns') {
-      return `${constants.ipfs_gateway}ipns/${hash}`
+      return `${hash}.ipns.${constants.ipfs_gateway}` //`${constants.ipfs_gateway}ipns/${hash}`
     }
     if (protocol === 'bzz') {
       return `${constants.bzz_gateway}bzz/${hash}`
@@ -612,7 +612,7 @@ export async function fetchImgFromNFT(token_standard, token_contract, token_id) 
 * Resolves IPFS url to HTTPS url. 
 */
 export function resolveIPFSURL(ipfs_url) {
-  return constants.ipfs_gateway + 'ipfs/' + ipfs_url.replace('ipfs://','')
+  return ipfs_url.replace('ipfs://','') + '.ipfs.' +  + constants.ipfs_gateway
 }
 
 

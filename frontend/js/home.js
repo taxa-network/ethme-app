@@ -113,12 +113,12 @@ export async function renderENSInfo(ens_name, content_hash, text_records) {
 
   
   // show web3 website
-  if (content_hash && content_hash != '') {
-    const web3_url = app.constants.ipfs_gateway + content_hash
-    $('#ens-web3-site').attr('href', web3_url) 
-  }
-  else 
-    $('#ens-web3-site').parent().addClass('d-none')
+  // if (content_hash && content_hash != '') {
+  //   const web3_url = app.constants.ipfs_gateway + content_hash
+  //   $('#ens-web3-site').attr('href', web3_url) 
+  // }
+  // else 
+  //   $('#ens-web3-site').parent().addClass('d-none')
 
 
   // check if text records found 
