@@ -314,10 +314,10 @@ export function getContentHashLink(objContentHash) {
     const hash = objContentHash.decoded
 
     if (protocol === 'ipfs') {
-      return `${hash}.ipfs.${constants.ipfs_gateway}` //`${constants.ipfs_gateway}ipfs/${hash}`
+      return generateIpfsIpnsUrl(protocol, hash)
     }
     if (protocol === 'ipns') {
-      return `${hash}.ipns.${constants.ipfs_gateway}` //`${constants.ipfs_gateway}ipns/${hash}`
+      return generateIpfsIpnsUrl(protocol, hash)
     }
     if (protocol === 'bzz') {
       return `${constants.bzz_gateway}bzz/${hash}`
@@ -609,14 +609,6 @@ export async function fetchImgFromNFT(token_standard, token_contract, token_id) 
 
 
 /**
-* Resolves IPFS url to HTTPS url. 
-*/
-export function resolveIPFSURL(ipfs_url) {
-  return ipfs_url.replace('ipfs://','') + '.ipfs.' +  + constants.ipfs_gateway
-}
-
-
-/**
 * Get address of provided ENS name.
 * Returns { full address, short_address, address_link }. 
 */
@@ -852,6 +844,21 @@ export async function makePOSTRequest(url, params_obj) {
   });
   
   return response
+}
+
+
+/**
+* Resolves IPFS url format to HTTPS url. 
+*/
+export function resolveIPFSURL(ipfs_url) {
+  return 'https://' + ipfs_url.replace('ipfs://','') + '.ipfs.' +  + constants.ipfs_gateway
+}
+
+/**
+* Generate IPFS/IPNS url from hash 
+*/
+export function generateIpfsIpnsUrl(protocol, hash) {
+  return `https://${hash}.${protocol}.${constants.ipfs_gateway}`
 }
 
 
