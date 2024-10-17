@@ -26,7 +26,7 @@ export const constants = {
   testnet: 'testnet',
 
   ipfs_gateway: 'eth2.me',
-  bzz_gateway: 'https://gateway.ethswarm.org/',
+  bzz_gateway: 'bzz.link',
   sia_gateway: 'https://siasky.net',
   arweave_gateway: 'https://arweave.net',
   ens_app_url: 'https://app.ens.domains/',
@@ -320,7 +320,7 @@ export function getContentHashLink(objContentHash) {
       return generateIpfsIpnsUrl(protocol, hash)
     }
     if (protocol === 'bzz') {
-      return `${constants.bzz_gateway}bzz/${hash}`
+      return generateSwarmUrl(hash)
     }
     if (protocol === 'onion' || protocol === 'onion3') {
       return `http://${hash}.onion`
@@ -859,6 +859,23 @@ export function resolveIPFSURL(ipfs_url) {
 */
 export function generateIpfsIpnsUrl(protocol, hash) {
   return `https://${hash}.${protocol}.${constants.ipfs_gateway}`
+}
+
+/**
+* Generate Swarm url from hash 
+*/
+export function generateSwarmUrl(hash) {
+  try {
+    let swarm_ens = getENSFromURL(location.hostname)
+    swarm_ens = swarm_ens.replace('.eth','')
+    return `${ens_name}.${constants.bzz_gateway}`
+  }
+  catch (error) {
+    captureErrorSentry(error, {
+      method: "generateSwarmUrl",
+    })
+    return `https://${constants.bzz_gateway}/bzz/${hash}`
+  }
 }
 
 
