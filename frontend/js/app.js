@@ -868,7 +868,7 @@ export function generateSwarmUrl(hash) {
   try {
     let swarm_ens = getENSFromURL(location.hostname)
     swarm_ens = swarm_ens.replace('.eth','')
-    return `${ens_name}.${constants.bzz_gateway}`
+    return `${swarm_ens}.${constants.bzz_gateway}`
   }
   catch (error) {
     captureErrorSentry(error, {
