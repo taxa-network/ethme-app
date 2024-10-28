@@ -20,9 +20,10 @@ export async function initialize() {
     const ens_name_hash = app.namehash(ens_name)
     let ens_data = await app.getENSDataFromGraph(ens_name_hash)
     
-    // if no data found it means name not exists or resolver not set
+    // if no data found it means name not exists or resolver not set or offchain ens name/data
     if (!ens_data || !ens_data.resolver) {
-      window.location.replace(app.constants.ens_app_url + ens_name)
+      const ens_name_decoded = await app.getUnicodeENSName(ens_name)
+      window.location.replace(app.constants.ens_app_url + ens_name_decoded)
       return
     }
 
@@ -68,7 +69,8 @@ export async function initialize() {
 
     // 4. if index, contenthash & url fields are not set, redirect to ens info page
     if(!redirect_url) {
-      redirect_url = app.constants.ens_app_url + ens_name
+      const ens_name_decoded = await app.getUnicodeENSName(ens_name)
+      redirect_url = app.constants.ens_app_url + ens_name_decoded 
     }
     
     console.log('redirect_url', redirect_url);

@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@ensdomains/content-hash": "^2.5.7",
-    "@ensdomains/eth-ens-namehash": "^2.0.15"
+    "@ensdomains/eth-ens-namehash": "^2.0.15",
+    "punycode": "^2.3.1"
   }
 }

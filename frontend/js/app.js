@@ -930,3 +930,19 @@ export function captureErrorSentry(error, tags) {
   console.log(error);
   Sentry.captureException(error, { tags });
 }
+
+
+export async function getUnicodeENSName(_ensName) {
+  try {
+    const punycode = await import('punycode');
+    const ens_name_decoded = punycode.toUnicode(_ensName); // decode to special chars
+    console.log(ens_name_decoded);
+    return ens_name_decoded ? ens_name_decoded : _ensName  
+  } 
+  catch (error) {
+    captureErrorSentry(error, {
+      method: "getUnicodeENSName",
+    })
+    return _ensName
+  }
+}
