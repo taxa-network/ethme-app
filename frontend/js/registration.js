@@ -1,8 +1,11 @@
-let collection_name, nft_id
+const app = require('./app.js')
+let collection_name, nft_id, collection_data
+
+initialize()
 
 
 async function initialize() {
-  let collection_obj = extractNFTInfoFromURL(document.location)
+  let collection_obj = app.extractNFTInfoFromURL(document.location)
   
   if (!collection_obj) {
     nftNotFound()
@@ -17,10 +20,10 @@ async function initialize() {
     return
   }
   
-  $('#ens-name').text(formatSubdomain(collection_name, nft_id))
-  $('#txt-ens-name').val(formatSubdomain(collection_name, nft_id))
+  $('#ens-name').text(app.formatSubdomain(collection_name, nft_id))
+  $('#txt-ens-name').val(app.formatSubdomain(collection_name, nft_id))
   
-  await initializeWeb3(constants.testnet)
+  await app.initializeWeb3(app.constants.testnet)
 
 
   // get collection data
@@ -31,10 +34,10 @@ async function initialize() {
     showError(collection_obj.message)
     return
   }
-  let collection_data = collection_obj.data
+  collection_data = collection_obj.data
 
   // check if subdomain exists
-  let subdomain_exists = await checkIfSubdomainExists(collection_name, nft_id)
+  let subdomain_exists = await app.checkIfSubdomainExists(collection_name, nft_id)
   if (subdomain_exists) {
     showError("Sub-domain already registered.")
     return
@@ -55,12 +58,7 @@ async function initialize() {
     updateAccountDetails(window.ethereum.selectedAddress)
     $('#btnRegister').removeClass('d-none')
 
-    // check connected wallet is owner of current nft
-    if (!collection_data.owner_address || collection_data.owner_address != window.ethereum.selectedAddress) {
-      $('#btnRegister').attr('disabled', 'disabled')
-      showError("Only owner of NFT can register.")
-      return
-    }
+    checkIfOwner(collection_data.owner_address)
   }
 }
 
@@ -83,15 +81,32 @@ function showMsg(msg){
 
 
 function updateAccountDetails(account){
-  let address_obj = formatAddress(account)
+  let address_obj = app.formatAddress(account)
   
   $('#ens-addr').attr('href', address_obj.address_link)
   $('#ens-addr').text(address_obj.short_address)
 }
 
 
+/**
+ * Check connected wallet is owner of current nft
+ */
+function checkIfOwner(owner_address){
+  if (!owner_address || owner_address != window.ethereum.selectedAddress) {
+    $('#btnRegister').attr('disabled', 'disabled')
+    showError("Only owner of NFT can register.")
+    return false
+  }
+  else {
+    $('#btnRegister').attr('disabled', false)
+    showError("")
+    return true
+  }
+}
+
+
 async function getCollectionDetails(collection_name, nft_id){
-  let response = await fetch(constants.backend_url + 'nftcollections/' + collection_name + '/' + nft_id);
+  let response = await fetch(app.constants.backend_url + 'nftcollections/' + collection_name + '/' + nft_id);
   let json_response = await response.json();
   
   if (response.status == 200) {
@@ -117,7 +132,7 @@ function hideLoading(disable_btn = false){
 
 
 async function getMsgToSign(owner_address) {
-  let response = await fetch(constants.backend_url + 'getMsgToSign/' + owner_address);
+  let response = await fetch(app.constants.backend_url + 'getMsgToSign/' + owner_address);
   if (response.status != 200) return false
 
   let json_response = await response.json();
@@ -144,19 +159,30 @@ async function signMsg(msg, address) {
 * EVENTS
 */
 
+// expose events
+window.btnConnectWallet = btnConnectWallet;
+window.btnAddSubdomainToQueue = btnAddSubdomainToQueue;
+window.btnRegisterSubdomain = btnRegisterSubdomain;
+
+
 /**
  * Event
  * To catch when metamask account is changed. 
  * Update account where needed.
  */
 window.ethereum.on('accountsChanged', function (accounts) {
+  if (!accounts[0]) {
+    location.reload() // no account found, possibly all accounts disconnected
+  }
+  
   updateAccountDetails(accounts[0])
+  checkIfOwner(collection_data.owner_address)
   console.log(accounts[0]); //-- current selected account
 });
 
 
-async function btnConnectWallet(){
-  if(await connectWallet()){
+export async function btnConnectWallet(){
+  if(await app.connectWallet()){
     $('#btnConnect').addClass('d-none')
     $('#btnRegister').removeClass('d-none')
 
@@ -168,7 +194,7 @@ async function btnConnectWallet(){
 /**
  * Adds subname registration request to queue for bulk registration. 
  */
-async function btnAddSubdomainToQueue(){
+export async function btnAddSubdomainToQueue(){
   try {
     showLoading()
 
@@ -201,7 +227,7 @@ async function btnAddSubdomainToQueue(){
       connected_address: window.ethereum.selectedAddress
     }
 
-    let response = await makePOSTRequest(constants.backend_url + 'registerdomain', params)
+    let response = await app.makePOSTRequest(app.constants.backend_url + 'registerdomain', params)
     let json_response = await response.json();
     console.log(json_response);
 
@@ -226,7 +252,7 @@ async function btnAddSubdomainToQueue(){
  * Use for single subname registration.
  * (not used for now)
  */
-async function btnRegisterSubdomain(){
+export async function btnRegisterSubdomain(){
   try {
     if(!window.ethereum.selectedAddress){
       showError("Please connect wallet.")
@@ -241,16 +267,16 @@ async function btnRegisterSubdomain(){
 
     console.log(collection_name, nft_id);
     let sub_domain = $('#txt-ens-name').val().toLowerCase()
-    console.log(constants.top_domain);
+    console.log(app.constants.top_domain);
     console.log(sub_domain);
-    console.log(namehash(constants.top_domain));
+    console.log(app.namehash(app.constants.top_domain));
     console.log(web3.utils.sha3(sub_domain));
     
 
-    const objBulkENSContract = new web3.eth.Contract(constants.bulkENSABI, await getBulkENSAddress());
+    const objBulkENSContract = new web3.eth.Contract(app.constants.bulkENSABI, await app.getBulkENSAddress());
     
     objBulkENSContract.methods.createSubdomain(
-      namehash(constants.top_domain),
+      app.namehash(app.constants.top_domain),
       collection_name,
       nft_id
     ).send({ 

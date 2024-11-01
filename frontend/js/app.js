@@ -678,9 +678,6 @@ export async function initializeWeb3(network, is_infura) {
     if (window.ethereum && !is_infura) {
       web3 = new Web3(window.ethereum)
       console.log('connected to window.ethereum', window.ethereum.isConnected());
-
-      if(!window.ethereum.isConnected())
-        await initializeWeb3(false, true) // connect to provider
     }
     else {
       const provider_url = (network && network == constants.testnet) ? constants.infura_url_testnet : constants.alchemy_url

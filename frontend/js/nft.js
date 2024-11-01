@@ -1,23 +1,27 @@
+const app = require('./app.js')
+
+initialize()
+
 
 async function initialize() {
-  let { collection_name, nft_id } = extractNFTInfoFromURL(document.location)
-
+  let { collection_name, nft_id } = app.extractNFTInfoFromURL(document.location)
+  
   if (!collection_name || !nft_id) {
     nftNotFound()
     return
   }
   else {
-    $('#ens-name').text(formatSubdomain(collection_name, nft_id))
+    $('#ens-name').text(app.formatSubdomain(collection_name, nft_id))
   }
 
-  await initializeWeb3(constants.testnet)
+  await app.initializeWeb3(app.constants.testnet)
 
   
   // [TO-DO] check if provided collection supported by eth.me
 
   
   // check if subdomain exists
-  let subdomain_exists = await checkIfSubdomainExists(collection_name, nft_id)
+  let subdomain_exists = await app.checkIfSubdomainExists(collection_name, nft_id)
 
   // if subname doesnt exist, show claim button & basic nft info
   if (!subdomain_exists) {
