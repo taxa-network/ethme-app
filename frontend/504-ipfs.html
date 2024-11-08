@@ -12,15 +12,15 @@
             text-align: center;
             padding: 50px;
         }
-        h1 {
+        .container h1 {
             font-size: 2.5em;
             margin-bottom: 40px;
         }
-        p {
+        .container p {
             font-size: 1.2em;
             margin-bottom: 20px;
         }
-        a {
+        .container a {
             color: #007bff;
             text-decoration: none;
         }
@@ -30,6 +30,7 @@
         .container {
           max-width: 600px;
           margin: auto;
+          margin-bottom: 80px;
           border: 1px solid #dee2e6;
           border-radius: 8px;
           padding: 20px;
@@ -44,6 +45,21 @@
         }
         .div-notes {
           text-align: left;
+        }
+
+        .cf-error-details, .cf-error-522 {
+          max-width: 600px;
+          margin: auto;
+        }
+        .cf-error-details h1, .cf-error-522 h1 {
+          font-size: 1em;
+        }
+        .cf-error-details p, .cf-error-522 p {
+          font-size: 0.8em;
+        }
+        .cf-error-details ul, .cf-error-522 ul {
+          font-size: 0.8em;
+          padding: 0;
         }
     </style>
 </head>
@@ -65,6 +81,9 @@
     </ul>
   </div>    
 </div>
+
+<!-- cloudflare's tag, needed if we are using cloudflare's proxy for domain -->
+::CLOUDFLARE_ERROR_500S_BOX::
 
 </body>
 </html>
