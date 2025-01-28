@@ -10,5 +10,8 @@ module.exports = {
     filename: '[name].bundle.js',
     path: path.resolve(__dirname, 'dist'),
   },
-  mode: 'production', // or 'production' for optimized bundles
+  mode: 'production', // 'development' or 'production' for optimized bundles
+  watchOptions: {
+    ignored: /node_modules/,
+  },
 };

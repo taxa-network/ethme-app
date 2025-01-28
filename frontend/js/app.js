@@ -31,6 +31,8 @@ export const constants = {
   arweave_gateway: 'https://arweave.net',
   ens_app_url: 'https://app.ens.domains/',
 
+  supported_index_fields: ['url', 'contenthash', 'com.twitter', 'com.github', 'com.telegram', 'com.linkedin', 'com.opensea', 'com.reddit', 'com.etherscan'],
+
   version: '0.0.8',
 
   addresses: {
@@ -426,10 +428,9 @@ export async function getENSDataFromGraph(ens_name_hash){
  */
 export async function getIndexRecordForENSName(ens_name_hash, resolver_address, encoded_content_hash) {
   try {
-    let supported_fields = ['url', 'contenthash', 'com.twitter', 'com.github', 'com.telegram', 'com.linkedin', 'com.opensea', 'com.reddit', 'com.etherscan']
-
     // get resolver for ENS name
-    if (!resolver_address || resolver_address == constants.zero_address) return false
+    if (!resolver_address || resolver_address == constants.zero_address) 
+      return { index_url: false, index_field: false, txt_value: false }
     
     // use contract interaction for text fields, bcz web3.js library doesnt contain method for it, and ethers doesnt support ipns url
     const resolverContract = new web3.eth.Contract(constants.resolverABI, resolver_address);
@@ -440,8 +441,8 @@ export async function getIndexRecordForENSName(ens_name_hash, resolver_address, 
 
 
     // check if field supported, and generate url
-    if (supported_fields.includes(index_field)) {
-      let index_url = ''
+    if (constants.supported_index_fields.includes(index_field)) {
+      let index_url = '', txt_value
 
       // if contenthash then get and generate ipfs url
       if (index_field == 'contenthash') {
@@ -450,7 +451,7 @@ export async function getIndexRecordForENSName(ens_name_hash, resolver_address, 
 
       // if text fields then get value and generate respective URL (like twitter etc)
       else {
-        let txt_value = await resolverContract.methods.text(ens_name_hash, index_field).call();
+        txt_value = await resolverContract.methods.text(ens_name_hash, index_field).call();
         
         if (index_field == 'url') {
           index_url = ensureHttpProtocol(txt_value)
@@ -461,16 +462,16 @@ export async function getIndexRecordForENSName(ens_name_hash, resolver_address, 
         }
       }
 
-      return index_url
+      return { index_url, index_field, txt_value }
     }
 
-    return ''
+    return { index_url: false, index_field: index_field, txt_value: false }
   } 
   catch (error) {
     captureErrorSentry(error, {
       method: "getIndexRecordForENSName",
     })
-    return ''
+    return { index_url: false, index_field: false, txt_value: false }
   }
 }
 
