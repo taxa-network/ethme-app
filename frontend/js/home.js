@@ -161,11 +161,11 @@ export async function getRedirectURLFromCache(ens_name, cached_data) {
 
     // 3. contenthash
     if (!redirect_url && cached_data.content_hash && cached_data.content_hash != '' && cached_data.content_hash != '0x') {
-      index_field_url = app.decodeContentHashWithLink(cached_data.content_hash)
-      console.log('content_hash', index_field_url);
+      let content_hash = app.decodeContentHashWithLink(cached_data.content_hash)
+      console.log('content_hash', content_hash);
       
-      if (index_field_url && index_field_url != '') {
-        redirect_url = index_field_url
+      if (content_hash && content_hash != '') {
+        redirect_url = content_hash
       }
     }
     
@@ -296,7 +296,7 @@ export async function getENSDataToRedirect(ens_name) {
 export function setCache(ens_name, obj_cache) {
   try {
     if (obj_cache && ens_name) {
-      obj_cache.cached_time = Date.now() //+ 1000 // add 1 sec delay in cache time, in case BE takes time to save
+      obj_cache.cached_time = Date.now() + 1000 // add 1 sec delay in cache time, in case BE takes time to save
       localStorage.setItem(ens_name, JSON.stringify(obj_cache))
       console.log('data cached', obj_cache);
     }
