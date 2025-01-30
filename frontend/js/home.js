@@ -1,6 +1,8 @@
 const app = require('./app.js')
 
-const ens_name = app.getENSFromURL(location.hostname)
+let ens_name = app.getENSFromURL(location.hostname)
+ens_name = await app.getUnicodeENSName(ens_name)
+
 var url_path = app.getPathFromURL(location)
 url_path = (url_path == '/') ? '' : url_path
 console.log(ens_name);
@@ -128,8 +130,7 @@ export async function getRedirectURLFromCache(ens_name, cached_data) {
 
     // 1. no resolver, redirect to ens app page
     if (!cached_data.resolver_address) {
-      const ens_name_decoded = await app.getUnicodeENSName(ens_name)
-      redirect_url = app.constants.ens_app_url + ens_name_decoded 
+      redirect_url = app.constants.ens_app_url + ens_name
     }
     
     // 2. index field
@@ -181,8 +182,7 @@ export async function getRedirectURLFromCache(ens_name, cached_data) {
     
     // 4. ENS app page
     if (!redirect_url) {
-      const ens_name_decoded = await app.getUnicodeENSName(ens_name)
-      redirect_url = app.constants.ens_app_url + ens_name_decoded 
+      redirect_url = app.constants.ens_app_url + ens_name
     }
 
     return redirect_url
@@ -224,8 +224,7 @@ export async function getENSDataToRedirect(ens_name) {
   
   // if no data found it means name not exists or resolver not set or offchain ens name/data
   if (!ens_data || !ens_data.resolver) {
-    const ens_name_decoded = await app.getUnicodeENSName(ens_name)
-    obj_cache.redirect_url = app.constants.ens_app_url + ens_name_decoded 
+    obj_cache.redirect_url = app.constants.ens_app_url + ens_name
     return obj_cache
   }
 
@@ -284,8 +283,7 @@ export async function getENSDataToRedirect(ens_name) {
 
   // 4. if index, contenthash & url fields are not set, redirect to ens info page
   if(!redirect_url) {
-    const ens_name_decoded = await app.getUnicodeENSName(ens_name)
-    redirect_url = app.constants.ens_app_url + ens_name_decoded 
+    redirect_url = app.constants.ens_app_url + ens_name
     obj_cache.redirect_url = redirect_url
   }
 
