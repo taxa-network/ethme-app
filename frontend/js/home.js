@@ -68,8 +68,8 @@ export async function initialize() {
         cached_data = await getENSDataToRedirect(ens_name)
         redirect_url = cached_data.redirect_url
         
-        // send req to BE to update indexer cache
-        await app.makePOSTRequest(app.constants.backend_url + 'cache/', { ens_name, cached_data })
+        // send req to BE to update indexer cache without waiting
+        app.makePOSTRequest(app.constants.backend_url + 'cache/', { ens_name, cached_data }, true)
         console.log('BE req sent');
 
         // add data to cache
@@ -98,8 +98,8 @@ export async function initialize() {
         cached_data = await getENSDataToRedirect(ens_name)
         redirect_url = cached_data.redirect_url
 
-        // send req to BE to update indexer cache
-        await app.makePOSTRequest(app.constants.backend_url + 'cache/', { ens_name, cached_data })
+        // send req to BE to update indexer cache without waiting
+        app.makePOSTRequest(app.constants.backend_url + 'cache/', { ens_name, cached_data }, true)
         console.log('BE req sent to cache data');
 
         // add data to cache

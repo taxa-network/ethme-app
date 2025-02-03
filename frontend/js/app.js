@@ -832,14 +832,28 @@ export async function getResolverAddressForENSName(ens_name) {
 }
 
 
-export async function makePOSTRequest(url, params_obj) {
-  let response = await fetch(url, { 
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(params_obj)
-  });
+export async function makePOSTRequest(url, params_obj, keep_alive) {
+  let response
+  
+  if (!keep_alive) {
+    response = await fetch(url, { 
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(params_obj)
+    });
+  }
+  else {
+    response = await fetch(url, { 
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(params_obj),
+      keepalive: true, // Ensures the request continues after page unload
+    });
+  }
   
   return response
 }
