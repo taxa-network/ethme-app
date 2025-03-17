@@ -67,10 +67,6 @@ export async function initialize() {
         console.log('1.3 cache invalid, with no cached_data from BE');
         cached_data = await getENSDataToRedirect(ens_name)
         redirect_url = cached_data.redirect_url
-        
-        // send req to BE to update indexer cache without waiting
-        app.makePOSTRequest(app.constants.backend_url + 'cache/', { ens_name, cached_data }, true)
-        console.log('BE req sent');
 
         // add data to cache
         setCache(ens_name, cached_data) 
@@ -97,10 +93,6 @@ export async function initialize() {
         console.log('2.2 fetching from web3');
         cached_data = await getENSDataToRedirect(ens_name)
         redirect_url = cached_data.redirect_url
-
-        // send req to BE to update indexer cache without waiting
-        app.makePOSTRequest(app.constants.backend_url + 'cache/', { ens_name, cached_data }, true)
-        console.log('BE req sent to cache data');
 
         // add data to cache
         setCache(ens_name, cached_data)
