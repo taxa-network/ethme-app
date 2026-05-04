@@ -383,7 +383,8 @@ export function decodeContentHashWithLink(encoded_content_hash) {
 /*
  * Get ENS data from Graph Indexer for given ENS name.
  */
-export async function getENSDataFromGraph(ens_name_hash){
+export async function getENSDataFromGraph(ens_name_hash, ens_name){
+  let ensname_data;
   try {
     let query = `query getSubgraphRecords($id: String!) {
         domain(id: $id) {
@@ -403,15 +404,24 @@ export async function getENSDataFromGraph(ens_name_hash){
     }
 
     let response = await makePOSTRequest(constants.graph_url, params)
-    let ensname_data = await response.json()
-    ensname_data = ensname_data.data.domain
-    
+    ensname_data = await response.json()
     console.log(ensname_data);
+    ensname_data = ensname_data.data.domain
     return ensname_data
   }
   catch (error) {
+    // if error from graph then capture error message from graph response, in additional data
+    let errors = ensname_data && ensname_data.errors ? { ...ensname_data.errors } : 'no error message found'
+
     captureErrorSentry(error, {
       method: "getENSDataFromGraph",
+      "window.location.href": window?.location?.href,
+      "location.hostname": location?.hostname,
+      "document.domain": document?.domain,
+      "ens_name": ens_name,
+    }, 
+    { // extra
+      "ensdata_error": errors
     })
     return false
   }
@@ -938,9 +948,15 @@ export function getAppVersion() {
 }
 
 
-export function captureErrorSentry(error, tags) {
+/**
+ * To capture error in sentry with additional tags and data.
+ * @param error - main error object 
+ * @param tags - object containing string values to capture. E.g. {a: '1', b: '2'}
+ * @param extra - additional data object, can contain object values. E.g. {obj1: {a: '1', b: '2'}}
+ */
+export function captureErrorSentry(error, tags, extra) {
   console.log(error);
-  Sentry.captureException(error, { tags });
+  Sentry.captureException(error, { tags, extra: extra });
 }
 
 

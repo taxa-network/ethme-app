@@ -210,7 +210,7 @@ export async function checkCacheValidity(ens_name, cached_time) {
 export async function getENSDataToRedirect(ens_name) {
   let redirect_url, obj_cache = { texts: {} };
   const ens_name_hash = app.namehash(ens_name)
-  let ens_data = await app.getENSDataFromGraph(ens_name_hash)
+  let ens_data = await app.getENSDataFromGraph(ens_name_hash, ens_name)
   
   // if no data found it means name not exists or resolver not set or offchain ens name/data
   if (!ens_data || !ens_data.resolver) {
