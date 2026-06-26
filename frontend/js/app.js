@@ -241,7 +241,7 @@ export const constants = {
 */
 
 
-var g_resolver, g_network_id, web3
+var g_resolver, g_network_id, web3,  g_web3LoadingPromise // g_web3LoadingPromise - module-level cache so we load it at most once
 
 getAppVersion()
 
@@ -679,6 +679,25 @@ export function getPathFromURL(location) {
 
 
 /**
+ * Injects the web3 CDN script on demand and resolves once window.Web3 exists.
+ * Safe to call multiple times — the script is fetched only once.
+ */
+export function ensureWeb3Loaded() {
+  if (window.Web3) return Promise.resolve(); // already available
+  if (g_web3LoadingPromise) return g_web3LoadingPromise; // load already in flight
+   
+  g_web3LoadingPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script')
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/web3/1.4.0/web3.min.js'
+    script.onload = () => resolve()
+    script.onerror = (e) => reject(new Error('Failed to load web3'))
+    document.head.appendChild(script)
+  })
+  return g_web3LoadingPromise
+} 
+
+
+/**
 * Initialize web3 object, if metamask is present then connect to window.ethereum 
 * else connect to infura.
 * param network - will connect to mainnet by default if not found, otherwise if testnet then connect to testnet 
@@ -686,6 +705,8 @@ export function getPathFromURL(location) {
 */
 export async function initializeWeb3(network, is_infura) {
   try {
+    await ensureWeb3Loaded() // guarantees window.Web3 before we use it
+
     if (window.ethereum && !is_infura) {
       web3 = new Web3(window.ethereum)
       console.log('connected to window.ethereum', window.ethereum.isConnected());
