@@ -5,8 +5,6 @@ ens_name = await app.getUnicodeENSName(ens_name)
 
 var url_path = app.getPathFromURL(location)
 url_path = (url_path == '/') ? '' : url_path
-console.log(ens_name);
-
 
 initialize()
 
@@ -28,8 +26,16 @@ export async function initialize() {
       console.log('1. cache here');
       cached_data = JSON.parse(cached_data)
       let cached_time = cached_data.cached_time
+
+      // 1.0 fast path: fresh local cache within TTL.
+      // Redirect immediately and skip the backend round-trip entirely.
+      if (cached_data.redirect_url && isCacheFresh(cached_data.cached_time)) {
+        console.log('1.0 fresh cache, instant redirect');
+        doRedirect(cached_data.redirect_url)
+        return
+      }
       
-      //-- cache found, check validity from backend
+      //-- cache found but stale, check validity from backend
       let cache_data_BE = await checkCacheValidity(ens_name, cached_time)
 
 
@@ -44,15 +50,17 @@ export async function initialize() {
         else {
           console.log('1.1.2 cache valid, redirect_url not found, getRedirectURLFromCache');
           redirect_url = await getRedirectURLFromCache(ens_name, cached_data)
-          updateCache(ens_name, redirect_url)
+          cached_data.redirect_url = redirect_url
         }
+
+        // cache is valid, refresh cached_time so the TTL fast-path re-engages on the next visit
+        setCache(ens_name, cached_data)
       }
 
 
       //-- 1.2 else use updated data from BE
       else {
         console.log('1.2 cache invalid, cached_data');
-        console.log(cache_data_BE);
 
         if (cache_data_BE.cached_data) {
           redirect_url = await getRedirectURLFromCache(ens_name, cache_data_BE.cached_data)
@@ -99,9 +107,7 @@ export async function initialize() {
       }
     }
 
-
-    console.log('redirect_url', redirect_url + url_path);
-    window.location.replace(redirect_url + url_path)
+    doRedirect(redirect_url)
   } 
   catch (error) {
     console.log(error);
@@ -109,6 +115,17 @@ export async function initialize() {
       method: "initialize",
     })
   }
+}
+
+
+export function doRedirect(redirect_url) {
+  console.log('redirect_url', redirect_url + url_path);
+  window.location.replace(redirect_url + url_path)
+}
+
+
+export function isCacheFresh(cached_time) {
+  return !!cached_time && (Date.now() - cached_time) < app.constants.cache_ttl_ms
 }
 
 
@@ -189,7 +206,6 @@ export async function checkCacheValidity(ens_name, cached_time) {
 
     if (response.status == 200) {
       let json_response = await response.json();
-      // let is_cache_valid = json_response.data.is_valid
       console.log(json_response);
       return json_response.data
     }
@@ -287,24 +303,6 @@ export function setCache(ens_name, obj_cache) {
       obj_cache.cached_time = Date.now() + 1000 // add 1 sec delay in cache time, in case BE takes time to save
       localStorage.setItem(ens_name, JSON.stringify(obj_cache))
       console.log('data cached', obj_cache);
-    }
-  } 
-  catch (error) {
-    console.log(error);
-  }
-}
-
-
-export function updateCache(ens_name, redirect_url) {
-  try {
-    if (redirect_url && redirect_url != '' && ens_name) {
-      let cached_data = localStorage.getItem(ens_name);
-      
-      if(cached_data && JSON.parse(cached_data)){
-        cached_data = JSON.parse(cached_data)
-        cached_data.redirect_url = redirect_url
-        localStorage.setItem(ens_name, JSON.stringify(cached_data))
-      }
     }
   } 
   catch (error) {
