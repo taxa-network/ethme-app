@@ -705,6 +705,8 @@ export function ensureWeb3Loaded() {
 */
 export async function initializeWeb3(network, is_infura) {
   try {
+    if(web3) return; // if web3 already initialized then return
+    
     await ensureWeb3Loaded() // guarantees window.Web3 before we use it
 
     if (window.ethereum && !is_infura) {
@@ -846,6 +848,7 @@ export async function getNetworkId() {
   if (g_network_id) return g_network_id // return g_network_id (global variable) if already set (fetched in this cycle)
 
   const network_id = await web3.eth.net.getId()
+  g_network_id = network_id;
   return network_id
 }
 
