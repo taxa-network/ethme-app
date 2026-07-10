@@ -293,7 +293,7 @@ export function decodeContentHash(encoded_content_hash) {
     } else if (codec === 'arweave-ns') {
       protocolType = 'arweave'
     } else {
-      decoded = encoded
+      return false // codec type not supported
     }
 
     return { protocolType, decoded: decoded_content_hash }
@@ -689,6 +689,7 @@ export function ensureWeb3Loaded() {
   g_web3LoadingPromise = new Promise((resolve, reject) => {
     const script = document.createElement('script')
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/web3/1.4.0/web3.min.js'
+    script.crossOrigin = 'anonymous'
     script.onload = () => resolve()
     script.onerror = (e) => reject(new Error('Failed to load web3'))
     document.head.appendChild(script)
