@@ -519,45 +519,6 @@ export async function getURLRecordForENSName(ens_name_hash, resolver_address) {
 }
 
 
-/*
-* Gets basic text records for provided ENS name.
-*/
-export async function getTextRecordsForENSName(_ensName) {
-  try {
-    // get resolver for ENS name
-    const resolver_address = await getResolverAddressForENSName(ens_name)
-    if (!resolver_address || resolver_address == constants.zero_address) return false
-
-    // use contract interaction for text fields, bcz web3.js library doesnt contain method for it, and ethers doesnt support ipns url
-    const resolverContract = new web3.eth.Contract(constants.resolverABI, resolver_address);
-    const ens_name_hash = namehash(_ensName)
-
-    let text_records = {
-      description: '',
-      avatar: '',
-      twitter: '',
-      github: '',
-      telegram: '',
-    }
-    
-    text_records.description = await resolverContract.methods.text(ens_name_hash, 'description').call();
-    text_records.avatar = await resolverContract.methods.text(ens_name_hash, 'avatar').call();
-    text_records.twitter = await resolverContract.methods.text(ens_name_hash, 'com.twitter').call();
-    text_records.github = await resolverContract.methods.text(ens_name_hash, 'com.github').call();
-    text_records.telegram = await resolverContract.methods.text(ens_name_hash, 'org.telegram').call();
-
-    console.log(text_records);
-    return text_records
-  } 
-  catch (error) {
-    captureErrorSentry(error, {
-      method: "getTextRecordsForENSName",
-    })
-    return false
-  }
-}
-
-
 export function generateIndexValueURL(index_field, txt_value) {
   switch (index_field) {
     case 'com.twitter':
