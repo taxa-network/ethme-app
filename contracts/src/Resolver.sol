@@ -15,8 +15,7 @@ import {ReverseClaimer} from "@ensdomains/ens-contracts/contracts/reverseRegistr
 import {INameWrapper} from "@ensdomains/ens-contracts/contracts/wrapper/INameWrapper.sol";
 
 /**
- * A simple resolver anyone can use; only allows the owner of a node to set its
- * address.
+ * A simple resolver anyone can use.
  */
 contract PublicResolver is
     Multicallable,
@@ -34,7 +33,7 @@ contract PublicResolver is
     INameWrapper immutable nameWrapper;
     address immutable trustedETHController;
     address immutable trustedReverseRegistrar;
-    address immutable trustedTXTAddress;
+    address immutable trustedTXTAddress; // bulkens contract
 
     /**
      * A mapping of operators. An address that is authorised for an address
