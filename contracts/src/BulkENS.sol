@@ -102,12 +102,14 @@ contract BulkENS is Ownable {
      * must set resolver before creating any subdomain
      */
     function setResolver(IResolver _resolver) external onlyOwner {
+        require(address(_resolver) != address(0), "Resolver cant be zero.");
         resolver = _resolver;
     }
 
 
     /**
      * @dev Takes array of symbols and contract addresses and add to supported collections.
+     * Pass 0 address if needed to delist collection.
      * 
      * @param symbols - collection symbols to add.
      * @param collectionAddresses - contract address for provided collection symbols.
@@ -118,6 +120,8 @@ contract BulkENS is Ownable {
     )
     external onlyOwner
     {
+        require(symbols.length == collectionAddresses.length, "Provided symbols and addresses are not equal.");
+
         for (uint256 i = 0; i < symbols.length; i++) {
             supportedCollections[symbols[i]] = collectionAddresses[i];
         }

@@ -2,30 +2,10 @@
 pragma solidity ^0.8.20;
 
 import {Script, console2} from "forge-std/Script.sol";
-import {BulkENS, IENS as IBulkRegistry, IResolver as IBulkResolver} from "../src/BulkENS.sol";
+import {BulkENS, IENS as IBulkRegistry} from "../src/BulkENS.sol";
 import {ENSRegistry} from "@ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol";
-
-/// Minimal mock for resolver BulkENS points subnames at.
-contract MockResolver is IBulkResolver {
-    function setText(bytes32, string calldata, string calldata) external {}
-
-    function multicall(bytes[] calldata data) external returns (bytes[] memory results) {
-        return new bytes[](data.length);
-    }
-}
-
-/// For supported collections
-contract MockERC721 {
-    mapping(uint256 => address) private _owners;
-
-    function mint(address to, uint256 tokenId) external {
-        _owners[tokenId] = to;
-    }
-
-    function ownerOf(uint256 tokenId) external view returns (address) {
-        return _owners[tokenId];
-    }
-}
+import {MockResolver} from "../test/mocks/MockResolver.sol";
+import {MockERC721} from "../test/mocks/MockERC721.sol";
 
 
 /**
