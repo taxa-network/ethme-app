@@ -15,12 +15,23 @@ contract BulkENSTest is Test {
     MockERC721 nft;
 
     address stranger = makeAddr("stranger");
+    address alice = makeAddr("alice");
+    address bob = makeAddr("bob");
+
+    bytes32 ethNode;
+    bytes32 youNode;
 
     function setUp() public {
         registry = new ENSRegistry(); // deployer owns the root node
         mockResolver = new MockResolver();
         nft = new MockERC721();
         bulkens = new BulkENS(IBulkRegistry(address(registry)));
+
+        // BulkENS must own the parent node before it can write subrecords.
+        ethNode = keccak256(abi.encodePacked(bytes32(0), keccak256("eth")));
+        youNode = keccak256(abi.encodePacked(ethNode, keccak256("you")));
+        registry.setSubnodeOwner(bytes32(0), keccak256("eth"), address(this));
+        registry.setSubnodeOwner(ethNode, keccak256("you"), address(bulkens));
     }
 
     // --- setResolver ---------------------------------------------------
@@ -151,7 +162,122 @@ contract BulkENSTest is Test {
         assertEq(bulkens.supportedCollections("MOCK"), address(0));
     }
 
+
+    // --- createBulkSubdomains ---------------------------------------------
+
+    function test_createBulkSubdomains_createsRecords() public {
+        bulkens.setResolver(mockResolver);
+
+        bytes32[] memory hashes = new bytes32[](2);
+        address[] memory owners = new address[](2);
+        hashes[0] = keccak256(abi.encodePacked("nft-0001"));
+        hashes[1] = keccak256(abi.encodePacked("nft-0002"));
+        owners[0] = alice;
+        owners[1] = bob;
+
+        bulkens.createBulkSubdomains(youNode, hashes, owners);
+
+        assertEq(registry.owner(_namehash(youNode, hashes[0])), alice);
+        assertEq(registry.owner(_namehash(youNode, hashes[1])), bob);
+        assertEq(registry.resolver(_namehash(youNode, hashes[0])), address(mockResolver));
+        assertEq(registry.resolver(_namehash(youNode, hashes[1])), address(mockResolver));
+    }
+
+    function test_createBulkSubdomains_revertsForNonOwner() public {
+        bulkens.setResolver(mockResolver);
+
+        vm.prank(stranger);
+        vm.expectRevert("Ownable: caller is not the owner");
+        bulkens.createBulkSubdomains(youNode, new bytes32[](0), new address[](0));
+    }
+
+    function test_createBulkSubdomains_revertsWithoutResolver() public {
+        bytes32[] memory hashes = new bytes32[](1);
+        address[] memory owners = new address[](1);
+        hashes[0] = keccak256(abi.encodePacked("nft-0001"));
+        owners[0] = alice;
+
+        vm.expectRevert("Resolver not set in contract.");
+        bulkens.createBulkSubdomains(youNode, hashes, owners);
+    }
+
+    function test_createBulkSubdomains_revertsOnLengthMismatch() public {
+        bulkens.setResolver(mockResolver);
+
+        bytes32[] memory hashes = new bytes32[](2);
+        address[] memory owners = new address[](1);
+
+        vm.expectRevert("Provided names and addresses should be equal.");
+        bulkens.createBulkSubdomains(youNode, hashes, owners);
+    }
+
+    // --- createSubdomain ---------------------------------------------------
+
+    function test_createSubdomain_createsRecordForNftOwner() public {
+        bulkens.setResolver(mockResolver);
+        _addCollection("MOCK", address(nft));
+        nft.mint(alice, 1);
+
+        vm.prank(alice);
+        bulkens.createSubdomain(youNode, "MOCK", "0001");
+
+        bytes32 label = _subnameLabel("MOCK", "0001");
+        assertEq(registry.owner(_namehash(youNode, label)), alice);
+        assertEq(registry.resolver(_namehash(youNode, label)), address(mockResolver));
+    }
+
+    function test_createSubdomain_revertsWithoutResolver() public {
+        _addCollection("MOCK", address(nft));
+        nft.mint(alice, 1);
+
+        vm.prank(alice);
+        vm.expectRevert("Resolver not set in contract.");
+        bulkens.createSubdomain(youNode, "MOCK", "0001");
+    }
+
+    function test_createSubdomain_revertsForUnsupportedCollection() public {
+        bulkens.setResolver(mockResolver);
+        nft.mint(alice, 1);
+
+        vm.prank(alice);
+        vm.expectRevert("Collection not supported.");
+        bulkens.createSubdomain(youNode, "NOPE", "0001");
+    }
+
+    function test_createSubdomain_revertsForNonNftOwner() public {
+        bulkens.setResolver(mockResolver);
+        _addCollection("MOCK", address(nft));
+        nft.mint(alice, 1);
+
+        vm.prank(bob);
+        vm.expectRevert("You must own this nft in order to create sub-domain.");
+        bulkens.createSubdomain(youNode, "MOCK", "0001");
+    }
+
+    /// Real ERC721 reverts on an unminted id, so this surfaces as the
+    /// collection's own error rather than BulkENS's ownership message.
+    function test_createSubdomain_revertsForNonexistentToken() public {
+        bulkens.setResolver(mockResolver);
+        _addCollection("MOCK", address(nft));
+
+        vm.prank(alice);
+        vm.expectRevert("ERC721: invalid token ID");
+        bulkens.createSubdomain(youNode, "MOCK", "0099");
+    }
+
     // --- helpers ---------------------------------------------------------
+
+    function _namehash(bytes32 node, bytes32 label) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked(node, label));
+    }
+
+    function _subnameLabel(string memory symbol, string memory nftId)
+        internal
+        pure
+        returns (bytes32)
+    {
+        return keccak256(abi.encodePacked(string.concat(symbol, "-", nftId)));
+    }
 
     function _addCollection(string memory symbol, address collection) internal {
         string[] memory symbols = new string[](1);
