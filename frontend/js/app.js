@@ -31,7 +31,7 @@ export const constants = {
   arweave_gateway: 'https://arweave.net',
   ens_app_url: 'https://app.ens.domains/',
 
-  supported_index_fields: ['url', 'contenthash', 'com.twitter', 'com.github', 'com.telegram', 'com.linkedin', 'com.opensea', 'com.reddit', 'com.etherscan'],
+  supported_index_fields: ['url', 'contenthash', 'com.twitter', 'com.github', 'org.telegram', 'com.linkedin', 'com.opensea', 'com.reddit', 'com.etherscan'],
   cache_ttl_ms: 10 * 60 * 1000, // 10 minutes
   version: '0.0.8',
 
@@ -527,7 +527,7 @@ export function generateIndexValueURL(index_field, txt_value) {
     case 'com.github':
       return generateGithubURL(txt_value)
 
-    case 'com.telegram':
+    case 'org.telegram':
       return generateTelegramURL(txt_value)
 
     case 'com.linkedin':
@@ -922,7 +922,7 @@ export function generateEtherscanURL(value) {
  */
 export function ensureHttpProtocol(url) {
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
-    return 'http://' + url;
+    return 'https://' + url;
   }
 
   return url;
