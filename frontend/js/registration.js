@@ -270,36 +270,10 @@ export async function btnRegisterSubdomain(){
     console.log(app.constants.top_domain);
     console.log(sub_domain);
     console.log(app.namehash(app.constants.top_domain));
-    console.log(web3.utils.sha3(sub_domain));
-    
 
-    const objBulkENSContract = new web3.eth.Contract(app.constants.bulkENSABI, await app.getBulkENSAddress());
-    
-    objBulkENSContract.methods.createSubdomain(
-      app.namehash(app.constants.top_domain),
-      collection_name,
-      nft_id
-    ).send({ 
-      from: window.ethereum.selectedAddress 
-    })
-    .on('transactionHash', function(hash) {
-      // $('#loader').show()
-      console.log(hash);
-    })
-    .on('confirmation', function(confirmationNumber, receipt) {
-      if(confirmationNumber === 0) {
-        // $('#loader').hide()
-        console.log("Transaction successfull")
-        hideLoading()
-      }
-    })
-    .on('error', function(error, receipt) {
-      // $('#loader').hide()
-      console.log('error');
-      console.log(error);
-      hideLoading()
-    })
-    
+    await app.createSubdomainTx(collection_name, nft_id)
+    console.log("Transaction successfull")
+    hideLoading()
   }
   catch (error) {
     console.log(error);

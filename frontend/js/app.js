@@ -1,3 +1,8 @@
+import { createClient, http, custom, fallback, encodeFunctionData, decodeFunctionResult, toHex } from 'viem'
+// actions imported individually (instead of createPublicClient / createWalletClient) so webpack only bundles what we use
+import { readContract, getEnsText, getEnsResolver, getEnsAddress, getChainId, getAddresses, requestAddresses } from 'viem/actions'
+import { mainnet, sepolia } from 'viem/chains'
+import { normalize, packetToBytes } from 'viem/ens'
 window.Buffer = require('buffer').Buffer;
 const contentHash = require('@ensdomains/content-hash')
 const ethens_namehash = require('@ensdomains/eth-ens-namehash')
@@ -165,8 +170,15 @@ export const constants = {
   ],
 
   ensRegistryABI: [
-    { "constant": false, "inputs": [{ "internalType": "bytes32", "name": "node", "type": "bytes32" }, { "internalType": "bytes32", "name": "label", "type": "bytes32" }, { "internalType": "address", "name": "owner", "type": "address" }, { "internalType": "address", "name": "resolver", "type": "address" }, { "internalType": "uint64", "name": "ttl", "type": "uint64" }], "name": "setSubnodeRecord", "outputs": [], "payable": false, "stateMutability": "nonpayable", "type": "function" }
+    { "constant": false, "inputs": [{ "internalType": "bytes32", "name": "node", "type": "bytes32" }, { "internalType": "bytes32", "name": "label", "type": "bytes32" }, { "internalType": "address", "name": "owner", "type": "address" }, { "internalType": "address", "name": "resolver", "type": "address" }, { "internalType": "uint64", "name": "ttl", "type": "uint64" }], "name": "setSubnodeRecord", "outputs": [], "payable": false, "stateMutability": "nonpayable", "type": "function" },
+    { "inputs": [{ "internalType": "bytes32", "name": "node", "type": "bytes32" }], "name": "owner", "outputs": [{ "internalType": "address", "name": "", "type": "address" }], "stateMutability": "view", "type": "function" }
   ],
+
+  // ENS Universal Resolver (ENSv2 entry point), address comes from viem chain config
+  universalResolverABI: [
+    { "inputs": [{ "name": "name", "type": "bytes" }, { "name": "data", "type": "bytes" }, { "name": "gateways", "type": "string[]" }], "name": "resolveWithGateways", "outputs": [{ "name": "", "type": "bytes" }, { "name": "address", "type": "address" }], "stateMutability": "view", "type": "function" }
+  ],
+  local_batch_gateway: 'x-batch-gateway:true', // viem handles CCIP-Read (offchain names) locally with this gateway value
 
   bulkENSABI: [
     {
@@ -241,23 +253,21 @@ export const constants = {
 */
 
 
-var g_resolver, g_network_id, web3,  g_web3LoadingPromise // g_web3LoadingPromise - module-level cache so we load it at most once
+var g_resolver, g_network_id, g_registry_address, public_client, wallet_client
 
 getAppVersion()
 
 
 /*
  * Gets content hash field for provided ENS name and returns encoded hash value.
+ * Reads through the Universal Resolver, so ENSv2, migrated and offchain names resolve too.
  */
 export async function getContentHashFromContract(_ensName) {
   try {
     const resolver_address = await getResolverAddressForENSName(_ensName)
     if (!resolver_address || resolver_address == constants.zero_address) return false
 
-    const resolverContract = new web3.eth.Contract(constants.resolverABI, resolver_address);
-
-    const ens_name_hash = namehash(_ensName)
-    let encoded_content_hash = await resolverContract.methods.contenthash(ens_name_hash).call();
+    let encoded_content_hash = await resolveRecord(_ensName, 'contenthash', [namehash(_ensName)])
     return encoded_content_hash
   }
   catch (error) {
@@ -436,17 +446,14 @@ export async function getENSDataFromGraph(ens_name_hash, ens_name){
  * Returns redirect URL on success. In case if field not supported or any 
  * issue found then returns blank string ''.
  */
-export async function getIndexRecordForENSName(ens_name_hash, resolver_address, encoded_content_hash) {
+export async function getIndexRecordForENSName(ens_name_hash, resolver_address, encoded_content_hash, ens_name) {
   try {
     // get resolver for ENS name
     if (!resolver_address || resolver_address == constants.zero_address) 
       return { index_url: false, index_field: false, txt_value: false }
     
-    // use contract interaction for text fields, bcz web3.js library doesnt contain method for it, and ethers doesnt support ipns url
-    const resolverContract = new web3.eth.Contract(constants.resolverABI, resolver_address);
-
     // get index text field
-    let index_field = await resolverContract.methods.text(ens_name_hash, 'index').call();
+    let index_field = await getTextRecord(ens_name, 'index');
     console.log('index_field', index_field);
 
 
@@ -461,9 +468,13 @@ export async function getIndexRecordForENSName(ens_name_hash, resolver_address, 
 
       // if text fields then get value and generate respective URL (like twitter etc)
       else {
-        txt_value = await resolverContract.methods.text(ens_name_hash, index_field).call();
-        
-        if (index_field == 'url') {
+        txt_value = await getTextRecord(ens_name, index_field);
+
+        // index points to an empty record, return '' so caller falls through to contenthash/url
+        if (!txt_value) {
+          index_url = ''
+        }
+        else if (index_field == 'url') {
           index_url = ensureHttpProtocol(txt_value)
         }
         else {
@@ -491,16 +502,13 @@ export async function getIndexRecordForENSName(ens_name_hash, resolver_address, 
  * 
  * Returns redirect URL on success, otherwise returns false.
  */
-export async function getURLRecordForENSName(ens_name_hash, resolver_address) {
+export async function getURLRecordForENSName(ens_name_hash, resolver_address, ens_name) {
   try {
     // get resolver for ENS name
     if (!resolver_address || resolver_address == constants.zero_address) return false
     
-    // use contract interaction for text fields, bcz web3.js library doesnt contain method for it, and ethers doesnt support ipns url
-    const resolverContract = new web3.eth.Contract(constants.resolverABI, resolver_address);
-
-    // get index text field
-    let url_field = await resolverContract.methods.text(ens_name_hash, 'url').call();
+    // get url text field
+    let url_field = await getTextRecord(ens_name, 'url');
     console.log('url_field', url_field);
 
     if (url_field && url_field != '') {
@@ -513,6 +521,77 @@ export async function getURLRecordForENSName(ens_name_hash, resolver_address) {
   catch (error) {
     captureErrorSentry(error, {
       method: "getURLRecordForENSName",
+    })
+    return false
+  }
+}
+
+
+/*
+ * Reads a resolver record (text, contenthash) through the ENS Universal Resolver.
+ * Works for ENSv1, ENSv2 (incl. migrated) and offchain (CCIP-Read) names.
+ * Returns ABI decoded record, or '0x' if no resolver / record (same as an empty web3 result).
+ */
+export async function resolveRecord(ens_name, function_name, args) {
+  const [result] = await readContract(public_client, {
+    address: public_client.chain.contracts.ensUniversalResolver.address,
+    abi: constants.universalResolverABI,
+    functionName: 'resolveWithGateways',
+    args: [
+      toHex(packetToBytes(ens_name)),
+      encodeFunctionData({ abi: constants.resolverABI, functionName: function_name, args }),
+      [constants.local_batch_gateway],
+    ],
+  })
+  if (result === '0x') return '0x'
+  return decodeFunctionResult({ abi: constants.resolverABI, functionName: function_name, data: result })
+}
+
+
+/*
+ * Gets text record value, returns '' when not set (same as web3 contract call).
+ * Requests are kept per name/key, so records prefetched in getENSDataOnchain are not fetched again.
+ */
+const g_text_records = {}
+export async function getTextRecord(ens_name, key) {
+  const name = normalize(ens_name)
+  const cache_key = name + '|' + key
+
+  if (!g_text_records[cache_key]) {
+    g_text_records[cache_key] = getEnsText(public_client, { name, key }).then((value) => value ?? '')
+    g_text_records[cache_key].catch(() => delete g_text_records[cache_key]) // don't keep failed requests
+  }
+  return g_text_records[cache_key]
+}
+
+
+/*
+ * Gets ENS data onchain via Universal Resolver (ENSv1, ENSv2 and offchain names).
+ * Resolver, contenthash, index and url are fetched in one RPC batch request.
+ * Returns same shape as getENSDataFromGraph: { name, resolver: { address, contentHash, texts } }
+ */
+export async function getENSDataOnchain(ens_name) {
+  try {
+    await initializeWeb3(false, true)
+    ens_name = normalize(ens_name)
+
+    const [resolver_address, content_hash, index_field, url_field] = await Promise.all([
+      getResolverAddressForENSName(ens_name),
+      resolveRecord(ens_name, 'contenthash', [namehash(ens_name)]).catch(() => '0x'),
+      getTextRecord(ens_name, 'index').catch(() => ''),
+      getTextRecord(ens_name, 'url').catch(() => ''),
+    ])
+    if (!resolver_address || resolver_address == constants.zero_address) return false
+
+    let texts = []
+    if (index_field) texts.push('index')
+    if (url_field) texts.push('url')
+
+    return { name: ens_name, resolver: { address: resolver_address, contentHash: content_hash, texts } }
+  }
+  catch (error) {
+    captureErrorSentry(error, {
+      method: "getENSDataOnchain",
     })
     return false
   }
@@ -557,14 +636,12 @@ export async function fetchImgFromNFT(token_standard, token_contract, token_id) 
 
   // call ERC721 contract with respective ABI
   if (token_standard == 'erc721') {
-    const erc721Contract = new web3.eth.Contract(constants.erc721ABI, token_contract);
-    token_uri = await erc721Contract.methods.tokenURI(token_id).call();
+    token_uri = await readContract(public_client, { address: token_contract, abi: constants.erc721ABI, functionName: 'tokenURI', args: [BigInt(token_id)] });
   }
 
   // call ERC1155 contract with respective ABI
   else if (token_standard == 'erc1155') {
-    const erc1155Contract = new web3.eth.Contract(constants.erc1155ABI, token_contract);
-    token_uri = await erc1155Contract.methods.uri(token_id).call();
+    token_uri = await readContract(public_client, { address: token_contract, abi: constants.erc1155ABI, functionName: 'uri', args: [BigInt(token_id)] });
   }
   console.log(token_uri);
 
@@ -585,7 +662,7 @@ export async function fetchImgFromNFT(token_standard, token_contract, token_id) 
 * Returns { full address, short_address, address_link }. 
 */
 export async function getAddress(ens_name) {
-  let address = await web3.eth.ens.getAddress(ens_name)
+  let address = await getEnsAddress(public_client, { name: normalize(ens_name) })
   return formatAddress(address)
 }
 
@@ -634,51 +711,38 @@ export function getENSFromURL(hostname) {
 */
 export function getPathFromURL(location) {
   let url = (new URL(location));
-  const path_without_domain = url.pathname + url.hash + url.search;
+  const path_without_domain = url.pathname + url.search + url.hash ;
   return path_without_domain
 }
 
 
 /**
- * Injects the web3 CDN script on demand and resolves once window.Web3 exists.
- * Safe to call multiple times — the script is fetched only once.
- */
-export function ensureWeb3Loaded() {
-  if (window.Web3) return Promise.resolve(); // already available
-  if (g_web3LoadingPromise) return g_web3LoadingPromise; // load already in flight
-   
-  g_web3LoadingPromise = new Promise((resolve, reject) => {
-    const script = document.createElement('script')
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/web3/1.4.0/web3.min.js'
-    script.crossOrigin = 'anonymous'
-    script.onload = () => resolve()
-    script.onerror = (e) => reject(new Error('Failed to load web3'))
-    document.head.appendChild(script)
-  })
-  return g_web3LoadingPromise
-} 
-
-
-/**
-* Initialize web3 object, if metamask is present then connect to window.ethereum 
-* else connect to infura.
+* Initialize viem client, if metamask is present then connect to window.ethereum 
+* else connect to alchemy/infura.
 * param network - will connect to mainnet by default if not found, otherwise if testnet then connect to testnet 
 * param is_infura - if true it will connect to infura even if metamask/provider found
 */
 export async function initializeWeb3(network, is_infura) {
   try {
-    if(web3) return; // if web3 already initialized then return
-    
-    await ensureWeb3Loaded() // guarantees window.Web3 before we use it
+    if(public_client) return; // if client already initialized then return
+
+    const chain = (network && network == constants.testnet) ? sepolia : mainnet
 
     if (window.ethereum && !is_infura) {
-      web3 = new Web3(window.ethereum)
+      public_client = createClient({ chain, transport: custom(window.ethereum) })
+      wallet_client = createClient({ chain, transport: custom(window.ethereum) })
       console.log('connected to window.ethereum', window.ethereum.isConnected());
     }
     else {
-      const provider_url = (network && network == constants.testnet) ? constants.infura_url_testnet : constants.alchemy_url
-      web3 = new Web3(provider_url)
-      console.log('connected to provider', provider_url);
+      // batch: calls made in the same tick go in one JSON-RPC batch request
+      // mainnet: alchemy, failover to infura if alchemy fails
+      const transport = (network && network == constants.testnet)
+        ? http(constants.infura_url_testnet, { batch: true })
+        : fallback([http(constants.alchemy_url, { batch: true }), http(constants.infura_url, { batch: true })])
+
+      public_client = createClient({ chain, transport })
+      g_network_id = chain.id // chain is known, saves an eth_chainId request
+      console.log('connected to provider', chain.name);
     }
     
     await setRegistryAddress()
@@ -720,7 +784,8 @@ export async function checkIfSubdomainExists(collection_name, nft_id){
   let full_sub_domain = sub_domain + '.' + constants.top_domain
 
   // get owner of provided subname
-  let owner = await web3.eth.ens.getOwner(full_sub_domain);
+  // stays on ENS v1 registry, BulkENS contract creates subnames there
+  let owner = await readContract(public_client, { address: g_registry_address, abi: constants.ensRegistryABI, functionName: 'owner', args: [namehash(full_sub_domain)] });
 
   let subdomain_exists = owner == '0x0000000000000000000000000000000000000000' ? false : true
   return subdomain_exists
@@ -756,8 +821,30 @@ export async function connectWallet() {
 }
 
 
+/* 
+ * Creates single subname via BulkENS contract from connected wallet.
+ * Returns transaction receipt after confirmation.
+ */
+export async function createSubdomainTx(collection_name, nft_id) {
+  // write actions loaded on demand, keeps them out of the redirect bundle
+  const { writeContract, waitForTransactionReceipt } = await import('viem/actions')
+  const [account] = await requestAddresses(wallet_client)
+
+  const hash = await writeContract(wallet_client, {
+    account,
+    address: await getBulkENSAddress(),
+    abi: constants.bulkENSABI,
+    functionName: 'createSubdomain',
+    args: [namehash(constants.top_domain), collection_name, nft_id],
+  })
+  console.log(hash);
+
+  return await waitForTransactionReceipt(public_client, { hash })
+}
+
+
 export async function checkIfWalletConnected() {
-  const accounts = await web3.eth.getAccounts() // returns all connected accounts to this site
+  const accounts = wallet_client ? await getAddresses(wallet_client) : [] // returns all connected accounts to this site
   return accounts.length > 0 ? true : false 
 }
 
@@ -773,12 +860,12 @@ export async function setRegistryAddress() {
     return
   }
 
-  web3.eth.ens.registryAddress = constants.addresses[network_id].ensRegistryAddress
+  g_registry_address = constants.addresses[network_id].ensRegistryAddress
 }
 
 
 export function getRegistryAddress() {
-  return web3.eth.ens.registryAddress // web3 registry address is set by our config in initializeWeb3
+  return g_registry_address // registry address is set by our config in initializeWeb3
 }
 
 
@@ -809,7 +896,7 @@ export async function getBulkENSAddress() {
 export async function getNetworkId() {
   if (g_network_id) return g_network_id // return g_network_id (global variable) if already set (fetched in this cycle)
 
-  const network_id = await web3.eth.net.getId()
+  const network_id = await getChainId(public_client)
   g_network_id = network_id;
   return network_id
 }
@@ -821,8 +908,8 @@ export async function getNetworkId() {
 export async function getResolverAddressForENSName(ens_name) {
   if (g_resolver) return g_resolver // return resolver (global variable) if already set (fetched in this cycle)
 
-  let obj_resolver = await web3.eth.ens.getResolver(ens_name);
-  g_resolver = obj_resolver.options.address
+  // Universal Resolver lookup, works for ENSv1, ENSv2 and offchain names
+  g_resolver = await getEnsResolver(public_client, { name: normalize(ens_name) });
   console.log(g_resolver);
   return g_resolver
 }
@@ -859,7 +946,9 @@ export async function makePOSTRequest(url, params_obj, keep_alive) {
 * Resolves IPFS url format to HTTPS url. 
 */
 export function resolveIPFSURL(ipfs_url) {
-  return 'https://' + ipfs_url.replace('ipfs://','') + '.ipfs.' +  + constants.ipfs_gateway
+  // ipfs://<cid>/<path> -> https://<cid>.ipfs.<gateway>/<path>
+  const [cid, ...path] = ipfs_url.replace('ipfs://', '').split('/')
+  return generateIpfsIpnsUrl('ipfs', cid) + (path.length ? '/' + path.join('/') : '')
 }
 
 /**

@@ -16,15 +16,14 @@ export async function initialize() {
   document.title = ens_name + app.constants.web2_domain_tld;
 
   try {
-    let cached_data = localStorage.getItem(ens_name);
+    let cached_data = getCache(ens_name);
     let redirect_url
     console.log('cached_data', cached_data);
-    
+
 
     //-- 1. CACHE FOUND
-    if(cached_data && JSON.parse(cached_data)){
+    if(cached_data){
       console.log('1. cache here');
-      cached_data = JSON.parse(cached_data)
       let cached_time = cached_data.cached_time
 
       // 1.0 fast path: fresh local cache within TTL.
@@ -35,39 +34,39 @@ export async function initialize() {
         return
       }
       
-      //-- cache found but stale, check validity from backend
-      let cache_data_BE = await checkCacheValidity(ens_name, cached_time)
+      // //-- cache found but stale, check validity from backend
+      // let cache_data_BE = await checkCacheValidity(ens_name, cached_time)
 
 
-      //-- 1.1 if cache valid, use cached data
-      if (cache_data_BE.is_valid) {
-        console.log('1.1 cache valid');
+      // //-- 1.1 if cache valid, use cached data
+      // if (cache_data_BE.is_valid) {
+      //   console.log('1.1 cache valid');
 
-        if (cached_data.redirect_url) {
-          console.log('1.1.1 cache valid, redirect_url found');
-          redirect_url = cached_data.redirect_url
-        }
-        else {
-          console.log('1.1.2 cache valid, redirect_url not found, getRedirectURLFromCache');
-          redirect_url = await getRedirectURLFromCache(ens_name, cached_data)
-          cached_data.redirect_url = redirect_url
-        }
+      //   if (cached_data.redirect_url) {
+      //     console.log('1.1.1 cache valid, redirect_url found');
+      //     redirect_url = cached_data.redirect_url
+      //   }
+      //   else {
+      //     console.log('1.1.2 cache valid, redirect_url not found, getRedirectURLFromCache');
+      //     redirect_url = await getRedirectURLFromCache(ens_name, cached_data)
+      //     cached_data.redirect_url = redirect_url
+      //   }
 
-        // cache is valid, refresh cached_time so the TTL fast-path re-engages on the next visit
-        setCache(ens_name, cached_data)
-      }
+      //   // cache is valid, refresh cached_time so the TTL fast-path re-engages on the next visit
+      //   setCache(ens_name, cached_data)
+      // }
 
 
-      //-- 1.2 else use updated data from BE
-      else {
-        console.log('1.2 cache invalid, cached_data');
+      // //-- 1.2 else use updated data from BE
+      // else {
+      //   console.log('1.2 cache invalid, cached_data');
 
-        if (cache_data_BE.cached_data) {
-          redirect_url = await getRedirectURLFromCache(ens_name, cache_data_BE.cached_data)
-          cache_data_BE.cached_data.redirect_url = redirect_url
-          setCache(ens_name, cache_data_BE.cached_data) 
-        }
-      }
+      //   if (cache_data_BE.cached_data) {
+      //     redirect_url = await getRedirectURLFromCache(ens_name, cache_data_BE.cached_data)
+      //     cache_data_BE.cached_data.redirect_url = redirect_url
+      //     setCache(ens_name, cache_data_BE.cached_data) 
+      //   }
+      // }
 
 
       //-- 1.3 fallback to traditional approach if BE return no response (BE unavailable)
@@ -87,31 +86,31 @@ export async function initialize() {
       console.log('no cache');
       
       // check if BE has cached data
-      let cache_data_BE = await checkCacheValidity(ens_name, 0)
-      console.log('2.1 resp from BE', cache_data_BE);
+      // let cache_data_BE = await checkCacheValidity(ens_name, 0)
+      // console.log('2.1 resp from BE', cache_data_BE);
 
-      if (cache_data_BE && cache_data_BE.cached_data) {
-        redirect_url = await getRedirectURLFromCache(ens_name, cache_data_BE.cached_data)
-        cache_data_BE.cached_data.redirect_url = redirect_url
-        setCache(ens_name, cache_data_BE.cached_data)
-      }
+      // if (cache_data_BE && cache_data_BE.cached_data) {
+      //   redirect_url = await getRedirectURLFromCache(ens_name, cache_data_BE.cached_data)
+      //   cache_data_BE.cached_data.redirect_url = redirect_url
+      //   setCache(ens_name, cache_data_BE.cached_data)
+      // }
 
       // if BE has no cached data then fetch from blockchain
-      else {
+      // else {
         console.log('2.2 fetching from web3');
         cached_data = await getENSDataToRedirect(ens_name)
         redirect_url = cached_data.redirect_url
 
         // add data to cache
         setCache(ens_name, cached_data)
-      }
+      // }
     }
 
     doRedirect(redirect_url)
   } 
   catch (error) {
     console.log(error);
-    captureErrorSentry(error, {
+    app.captureErrorSentry(error, {
       method: "initialize",
     })
   }
@@ -157,11 +156,15 @@ export async function getRedirectURLFromCache(ens_name, cached_data) {
         }
         else{
           let txt_value = cached_data.texts[index_field]
-          if (index_field == 'url') {
+          if (txt_value && index_field == 'url') {
             index_field_url = app.ensureHttpProtocol(txt_value)
           }
-          else {
+          else if (txt_value) {
             index_field_url = app.generateIndexValueURL(index_field, txt_value)
+          }
+
+          if (index_field_url) {
+            redirect_url = index_field_url
           }
         }
       }
@@ -215,7 +218,7 @@ export async function checkCacheValidity(ens_name, cached_time) {
     }
   }
   catch (error) {
-    captureErrorSentry(error, {
+    app.captureErrorSentry(error, {
       method: "checkCacheValidity",
     })
     return { is_valid: false }
@@ -226,8 +229,12 @@ export async function checkCacheValidity(ens_name, cached_time) {
 export async function getENSDataToRedirect(ens_name) {
   let redirect_url, obj_cache = { texts: {} };
   const ens_name_hash = app.namehash(ens_name)
-  let ens_data = await app.getENSDataFromGraph(ens_name_hash, ens_name)
-  
+  // let ens_data = await app.getENSDataFromGraph(ens_name_hash, ens_name)
+
+  // onchain via Universal Resolver (ENSv1, ENSv2 & offchain names), resolver/contenthash/index/url in one RPC batch viem call.
+  // index/url values are reused below
+  let ens_data = await app.getENSDataOnchain(ens_name)
+
   // if no data found it means name not exists or resolver not set or offchain ens name/data
   if (!ens_data || !ens_data.resolver) {
     obj_cache.redirect_url = app.constants.ens_app_url + ens_name
@@ -238,19 +245,19 @@ export async function getENSDataToRedirect(ens_name) {
   let ar_texts = ens_data.texts
   let resolver_address = ens_data.address
   let encoded_content_hash = ens_data.contentHash
-  
+
   obj_cache.resolver_address = resolver_address
   obj_cache.content_hash = encoded_content_hash
   obj_cache.ens_name_hash = ens_name_hash
-  
+
 
   // 1. if index field present then redirect to index field url
   if (ar_texts && ar_texts.includes('index')) {
     await app.initializeWeb3(false, true)
 
-    let { index_url, index_field, txt_value } = await app.getIndexRecordForENSName(ens_name_hash, resolver_address, encoded_content_hash)
+    let { index_url, index_field, txt_value } = await app.getIndexRecordForENSName(ens_name_hash, resolver_address, encoded_content_hash, ens_name)
     console.log('index_field_url', index_url);
-    
+
     if (index_url && index_url != '') {
       obj_cache.texts.index = index_field
       obj_cache.redirect_url = index_url
@@ -261,23 +268,23 @@ export async function getENSDataToRedirect(ens_name) {
       }
     }
   }
-  
+
   // 2. if index field is not set, redirect to contenthash
   if(!redirect_url && encoded_content_hash && encoded_content_hash != '' && encoded_content_hash != '0x') {
     let content_hash = app.decodeContentHashWithLink(encoded_content_hash)
     console.log('content_hash', content_hash);
-    
+
     if (content_hash && content_hash != '') {
       obj_cache.redirect_url = content_hash
       redirect_url = content_hash + url_path
     }
   }
-  
+
   // 3. if index & contenthash fields are not set, redirect to url field
   if(!redirect_url && ar_texts && ar_texts.includes('url')) {
     await app.initializeWeb3(false, true)
 
-    let url = await app.getURLRecordForENSName(ens_name_hash, resolver_address)
+    let url = await app.getURLRecordForENSName(ens_name_hash, resolver_address, ens_name)
     console.log('url', url);
 
     if (url && url != '') {
@@ -294,6 +301,18 @@ export async function getENSDataToRedirect(ens_name) {
   }
 
   return obj_cache
+}
+
+
+// cached object for ens name, null if missing, corrupt or storage blocked
+export function getCache(ens_name) {
+  try {
+    const cached_data = JSON.parse(localStorage.getItem(ens_name))
+    return (cached_data && typeof cached_data == 'object') ? cached_data : null
+  }
+  catch (error) {
+    return null
+  }
 }
 
 
